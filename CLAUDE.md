@@ -4,7 +4,7 @@
 
 This project collects, organizes, and analyzes daily news to generate **actionable trading signals for China stocks (A-shares, Hong Kong)**. All news and data collection serves one end goal: **should I buy, sell, hold, or avoid specific China stock sectors/indices today?**
 
-Three information pillars feed the analysis:
+Four information pillars feed the analysis:
 
 1. **US Economy & Markets** — Fed policy, inflation, jobs, earnings, trade policy — because US macro directly impacts China markets
 2. **China Focus** — China's economy, trade data, PBOC policy, stimulus, regulatory changes, property market, tech sector
@@ -114,14 +114,65 @@ Three information pillars feed the analysis:
 
 When asked to collect daily news (`/loop` or manual run):
 
-1. **Search** — Use Exa to find today's top stories; search in **both English and Chinese** for China and AI coverage
-2. **Fetch** — Use Exa fetch or Playwright for paywalled/JS-heavy sites
-3. **Extract prices** — Use Yahoo Finance MCP for US indices, China indices, commodities, forex (USD/CNY), and AI stocks
-4. **Summarize** — Write a structured daily briefing in `reports/YYYY-MM-DD.md` (English) and `reports/YYYY-MM-DD-cn.md` (Chinese)
-5. **Flag** — Highlight market-moving events, US-China risks, AI developments, and trading implications
-6. **Track decisions** — Log trading signals to `decisions/YYYY-MM-DD.md` and update `decisions/positions.md`
-7. **Update knowledge** — Update `knowledge/context.md` and `knowledge/ai-landscape.md` with any state changes
-8. **Reference history** — At session start, read knowledge base and recent decision logs for continuity
+### Phase 1: Context Loading (do this FIRST)
+1. **Load knowledge base** — Read `knowledge/context.md` and `knowledge/ai-landscape.md` to understand current world state
+2. **Load open positions** — Read `decisions/positions.md` and the last 2-3 daily decision logs to understand active trades and recent signals
+3. **Identify follow-ups** — Note which open positions need price updates, stop-loss/take-profit checks, and which watchlist items may have triggered
+
+### Phase 2: Data Collection
+4. **Extract prices** — Use Yahoo Finance for indices, commodities, forex. Use Alpha Vantage for technical indicators (RSI, MACD, BBANDS) on key positions, commodity spot prices, and news sentiment scores
+5. **Check positions** — Compare current prices against open position stop-loss and take-profit levels. Flag any triggers
+6. **Search news** — Use Exa with the minimum query set below; search in **both English and Chinese**
+7. **Fetch details** — Use Exa fetch or Playwright for paywalled/JS-heavy articles that seem high-impact
+8. **Pull macro data** — Use FRED for any new US economic releases (CPI, NFP, GDP, etc.)
+
+### Phase 3: Analysis & Output
+9. **Write report** — Structured daily briefing in `reports/YYYY-MM-DD.md` (English) and `reports/YYYY-MM-DD-cn.md` (Chinese). Include a "Changes Since Yesterday" summary and a dedicated "AI & Technology" section
+10. **Generate signals** — New trading signals with reasoning, plus follow-up on all prior open signals
+11. **Track decisions** — Log to `decisions/YYYY-MM-DD.md` and update `decisions/positions.md`
+12. **Update knowledge** — Update knowledge docs ONLY when state actually changes (see Knowledge Update Triggers below)
+
+### Minimum Exa Search Queries
+Run at least these searches each session (add more as needed):
+
+| # | Query (English) | Query (Chinese) | Covers |
+|---|----------------|-----------------|--------|
+| 1 | `US economy Federal Reserve today` | — | Fed, US macro |
+| 2 | `China economy trade PBOC today` | `中国经济 央行 贸易 今日` | China macro |
+| 3 | `US China relations sanctions tariffs` | `中美关系 制裁 关税` | Geopolitics |
+| 4 | `AI artificial intelligence chips breakthrough` | `人工智能 大模型 AI芯片 算力` | AI sector |
+| 5 | `China stock market A-shares Hong Kong` | `A股 港股 行情` | China markets |
+| 6 | `oil gold commodities prices today` | — | Commodities |
+
+### Data Freshness Rules
+- **US market data**: prior trading day's close (US markets close after Asia opens)
+- **China market data**: same-day close (Shanghai/HK close before US opens)
+- **Commodities/Forex**: latest available (near real-time via futures)
+- Always label which session/date each price comes from in the report tables
+
+### Tool Usage Guide
+| Tool | Primary Use | When to Prefer |
+|------|------------|----------------|
+| Yahoo Finance | Stock prices, company info, earnings, news | Default for all price data |
+| FRED | US macro indicators (CPI, GDP, unemployment, rates) | When new US economic data releases |
+| Alpha Vantage | Technical indicators (RSI, MACD, BBANDS), commodity spot, forex, sentiment | When analyzing specific stock technicals or need sentiment scores |
+| Exa | News search + content extraction | All news gathering |
+| Playwright | Browser automation | Paywalled sites, JS-heavy pages that Exa can't extract |
+
+### Knowledge Update Triggers
+Update `knowledge/context.md` when:
+- Central bank changes rates or shifts stance (Fed, PBOC, ECB, BOJ)
+- New sanctions, tariffs, or trade policy enacted
+- Geopolitical status changes (ceasefire, escalation, new conflict)
+- Major economic data surprises (GDP miss/beat, employment shift)
+- Market regime shifts (breakout, crash, new range established)
+
+Update `knowledge/ai-landscape.md` when:
+- Major model release or breakthrough benchmark
+- New chip export controls or entity list changes
+- Company valuation shifts >10% on AI news
+- New AI regulation enacted
+- Supply chain disruption (fab issues, chip shortages)
 
 ## Report Format
 
@@ -130,7 +181,12 @@ Each daily report should follow this structure:
 ```markdown
 # Daily Intelligence Briefing — YYYY-MM-DD
 
-## US Market Snapshot
+## Changes Since Yesterday
+- Summary of what moved overnight / since last report
+- Open position updates (any stop-loss / take-profit triggers)
+- Prior signal follow-ups (what happened to yesterday's calls)
+
+## US Market Snapshot (prior day close)
 | Asset | Price | Change | Trend |
 |-------|-------|--------|-------|
 | S&P 500 | ... | ... | ... |
@@ -138,14 +194,14 @@ Each daily report should follow this structure:
 | DXY | ... | ... | ... |
 | US 10Y Yield | ... | ... | ... |
 
-## China Market Snapshot
+## China Market Snapshot (today's close)
 | Asset | Price | Change | Trend |
 |-------|-------|--------|-------|
 | Shanghai Composite | ... | ... | ... |
 | Hang Seng | ... | ... | ... |
 | USD/CNY | ... | ... | ... |
 
-## Commodities
+## Commodities (latest)
 | Asset | Price | Change | Trend |
 |-------|-------|--------|-------|
 | Gold | ... | ... | ... |
@@ -166,7 +222,9 @@ Each daily report should follow this structure:
 - ...
 
 ## AI & Technology
-- ...
+- AI model releases, chip news, AI capex/earnings
+- US-China AI rivalry developments
+- AI stock movers (with tickers and price changes)
 
 ## Key Risks & Watchlist
 - ...

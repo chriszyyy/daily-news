@@ -8,7 +8,7 @@
 
 ### Iran War (active since late Feb 2026)
 - US-Iran ceasefire in place but fragile. Strait of Hormuz remains closed by Iran. US maintaining blockade of Iranian ports.
-- Oil prices elevated (~$108 WTI) due to supply disruption.
+- Oil prices elevated but pulling back (~$105 WTI, down from $108) due to supply disruption. First meaningful dip.
 - IMF downgraded 2026 global growth to 3.1% (from 3.4%) even in optimistic scenario.
 - ECB, BoE, BoC all meeting — no hikes expected but hawkish tone possible.
 - BOJ signaling possible rate hikes; yen at 160/USD near intervention levels.
@@ -29,16 +29,16 @@
 ## US Economic State
 
 ### Fed Policy
-- **Fed funds rate**: 3.64% (Mar 2026). Fed held rates unchanged Apr 29.
-- **Powell's likely final meeting** as Fed Chair. Kevin Warsh advancing through Senate confirmation.
+- **Fed funds rate**: 3.50-3.75%. Fed held rates unchanged Apr 29 with **8-4 vote** — highest dissent since 1992. Four members opposed language suggesting further cuts.
+- **Powell's likely final meeting** as Fed Chair. Kevin Warsh advancing through Senate confirmation, due mid-May.
 - Powell said tariff price increases should fade in next 2 quarters.
-- Market pricing: no cuts or hikes expected for extended period. ECB/BoE may hike before Fed moves.
+- Market pricing: no cuts or hikes expected for extended period.
 
 ### Key Indicators (latest)
+- **Q1 2026 GDP**: 2.0% SAAR (annualized) — significant improvement from 0.5% in Q4 2025. Consumer spending +1.6%, govt spending +4.4%.
 - **CPI**: +0.87% MoM (Mar 2026) — sticky, tariff pass-through still visible
-- **Unemployment**: 4.3% (Mar 2026)
-- **GDP**: $31,422.5B SAAR (Q4 2025)
-- **10Y yield**: 4.418% — rising, bond market pricing sticky inflation
+- **Unemployment**: 4.3% (Mar 2026). NFP +178K in March.
+- **10Y yield**: 4.39% — pulled back from 4.42%, still elevated
 
 ### Fiscal/Trade Policy
 - Supreme Court struck down IEEPA tariffs (Feb 2026). Trump using Section 122 (10% global, expires in <3 months) and pursuing Section 301.
@@ -101,10 +101,13 @@
 ### Current Themes (Apr 2026)
 - US hyperscaler capex cycle continues — MSFT, GOOG, META, AMZN all investing heavily in AI infra.
 - META raised capex guidance (shares dropped despite earnings beat) — market questioning ROI timeline.
+- **Google announced TPU 8t/8i** (8th gen) — first time splitting training and inference chips. Built with Broadcom (8t) and MediaTek (8i). Both on TSMC 2nm, targeting late 2027. Anthropic deal expanded to 3.5GW.
 - China banned foreign AI chips from state-funded data centers — accelerating domestic chip substitution.
+- **SMIC surged 7.75% in HK** on AI chip demand narrative (Apr 30).
 - US weighing additional export controls on AI chips to China.
 - DeepSeek and Chinese open-source models narrowing gap with Western frontier models.
 - AI optical modules (Zhongji Innolight 300308.SZ) hitting record highs on strong demand.
+- IBM unveiled analog AI chip for high-efficiency inference.
 
 ---
 
