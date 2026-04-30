@@ -1,130 +1,130 @@
-# Global Context — Living Document
+# 全球背景 — 持续更新文档
 
-*Last updated: 2026-04-30*
-
----
-
-## Geopolitical State
-
-### Iran War (active since late Feb 2026)
-- US-Iran ceasefire in place but fragile. Strait of Hormuz remains closed by Iran. US maintaining blockade of Iranian ports.
-- Oil prices elevated but pulling back (~$105 WTI, down from $108) due to supply disruption. First meaningful dip.
-- IMF downgraded 2026 global growth to 3.1% (from 3.4%) even in optimistic scenario.
-- ECB, BoE, BoC all meeting — no hikes expected but hawkish tone possible.
-- BOJ signaling possible rate hikes; yen at 160/USD near intervention levels.
-
-### US-China Relations
-- **Trade truce** in place, expiring Nov 2026. Forged after China threatened rare earth export restrictions.
-- **Trump-Xi summit planned for mid-May 2026** — major catalyst. Agenda: Taiwan, Iran oil sanctions, trade, AI.
-- **Sanctions escalation**: US sanctioned Hengli Petrochemical (Dalian) and ~40 shipping companies over Iranian oil. Treasury warning Chinese banks of secondary sanctions.
-- **China countermeasures**: enacted laws to punish supply chain shifting, tightened rare earth licensing, banned foreign AI chips from state-funded data centers, weighing solar equipment export curbs.
-- **Taiwan**: China banned dual-use exports to 7 European entities over Taiwan arms sales. KMT opposition courting Beijing as faith in US fades. Taiwan worried about being "on the menu" at summit.
-
-### Other
-- Russia/Ukraine: ongoing (background)
-- Lebanon-Israel: 10-day ceasefire in place
+*最后更新：2026-04-30*
 
 ---
 
-## US Economic State
+## 地缘政治态势
 
-### Fed Policy
-- **Fed funds rate**: 3.50-3.75%. Fed held rates unchanged Apr 29 with **8-4 vote** — highest dissent since 1992. Four members opposed language suggesting further cuts.
-- **Powell's likely final meeting** as Fed Chair. Kevin Warsh advancing through Senate confirmation, due mid-May.
-- Powell said tariff price increases should fade in next 2 quarters.
-- Market pricing: no cuts or hikes expected for extended period.
+### 伊朗战争（2026年2月底以来）
+- 美伊停火协议到位但脆弱。霍尔木兹海峡仍被伊朗关闭。美国维持对伊朗港口封锁。
+- 油价高位但开始回落（WTI ~$105，从$108下跌）。首次有意义回调。
+- IMF下调2026年全球增长至3.1%（此前3.4%），即便在乐观情景下。
+- 欧央行、英国央行、加拿大央行本周开会 — 预计不加息但可能偏鹰。
+- 日本央行暗示未来可能加息；日元在160/美元附近，接近干预水平。
 
-### Key Indicators (latest)
-- **Q1 2026 GDP**: 2.0% SAAR (annualized) — significant improvement from 0.5% in Q4 2025. Consumer spending +1.6%, govt spending +4.4%.
-- **CPI**: +0.87% MoM (Mar 2026) — sticky, tariff pass-through still visible
-- **Unemployment**: 4.3% (Mar 2026). NFP +178K in March.
-- **10Y yield**: 4.39% — pulled back from 4.42%, still elevated
+### 中美关系
+- **贸易休战**到位，2026年11月到期。此前中国威胁限制稀土出口后达成。
+- **特朗普-习近平峰会计划于2026年5月中旬** — 重大催化剂。议题：台湾、伊朗石油制裁、贸易、AI。
+- **制裁升级**：美国制裁恒力石化（大连）及约40家航运公司（伊朗石油）。财政部警告中国银行面临二级制裁。
+- **中国反制**：立法惩罚供应链转移、收紧稀土许可、禁止国资数据中心使用外国AI芯片、考虑限制对美光伏设备出口。
+- **台湾**：中国禁止向7个欧洲实体出口两用物项（对台军售）。国民党向北京示好。台湾担忧成为峰会"菜单上的议题"。
 
-### Fiscal/Trade Policy
-- Supreme Court struck down IEEPA tariffs (Feb 2026). Trump using Section 122 (10% global, expires in <3 months) and pursuing Section 301.
-- CBO warns tariff shifts could add $1.1T to deficit over 10 years.
-- Section 301 hearings starting — targeting 16 countries (70% of US imports) including China, EU, Japan.
-- Steel/aluminum: 50% tariffs on Canada/Mexico; relief offered only if production shifts to US.
-- Fed research: 2025 tariffs fully passed through to consumer prices, adding 3.1% to core goods PCE.
-
-### Earnings (Apr 29)
-- MSFT: beat, Azure +40%. GOOG: beat, shares spiked. AMZN: beat. META: beat but shares dropped (raised capex).
-
-### Sentiment
-- Ray Dalio: US is "certainly in a stagflationary period"
-- Higher energy prices from Iran war roughly offsetting tax cut benefits for households.
+### 其他
+- 俄乌：持续（背景）
+- 黎以：10天停火到位
 
 ---
 
-## China Economic State
+## 美国经济状态
 
-### Growth
-- **Q1 2026 GDP: 5.0% YoY** (beat 4.8% forecast), up from 4.5% in Q4 2025. Strongest in 3 quarters.
-- Growth target: 4.5-5.0% range (least ambitious since 1990s).
-- Growth driven by exports (+14.7% YoY in Q1), but consumption remains weak.
+### 美联储政策
+- **联邦基金利率**：3.50-3.75%。4月29日以**8-4投票**维持不变 — 1992年以来最大分歧。四名委员反对暗示进一步降息的措辞。
+- **鲍威尔可能最后一次会议**。沃什正通过参议院确认，预计5月中旬接任。
+- 鲍威尔称关税价格上涨应在未来两个季度消退。
+- 市场定价：较长时期内既不降息也不加息。
 
-### Key Indicators
-- **March exports**: collapsed to +2.5% (from +21.8% in Jan-Feb) — Iran war disrupting shipping/demand.
-- **Retail sales**: +1.7% YoY in March (from +2.8%) — consumption still the weak link.
-- **Factory-gate prices**: turned positive in March for first time in 3+ years — energy costs seeping into manufacturing.
-- **Manufacturing PMI**: back in expansion (above 50) in March.
+### 关键指标（最新）
+- **Q1 2026 GDP**：年化增长2.0% — 较Q4 2025的0.5%显著改善。消费支出+1.6%，政府支出+4.4%。
+- **CPI**：环比+0.87%（2026年3月）— 粘性通胀，关税传导仍可见
+- **失业率**：4.3%（2026年3月）。非农就业+17.8万。
+- **10年期收益率**：4.39% — 从4.42%回落，仍处高位
 
-### PBOC / Monetary Policy
-- LPR unchanged for 11 months: 1Y at 3.0%, 5Y at 3.5%.
-- Stance: "supportive" and "moderately loose." Expectations for rate cuts pushed back.
-- PBOC injecting liquidity despite flush system. Money market rates near 3-year lows.
-- Structural inflation (PPI-CPI divergence) expected — PBOC unlikely to tighten.
+### 财政/贸易政策
+- 最高法院推翻IEEPA关税（2026年2月）。特朗普使用122条款（全球10%，不到3个月到期）并推进301条款。
+- CBO警告关税调整可能在10年内增加$1.1万亿赤字。
+- 301条款听证会启动 — 针对16国（占美国进口70%），包括中国、欧盟、日本。
+- 钢铝：对加拿大/墨西哥50%关税；仅在生产转移至美国时给予减免。
+- 美联储研究：2025年关税完全传导至消费价格，核心商品PCE增加3.1%。
 
-### Politburo (Apr 28-29)
-- Pledged targeted proactive fiscal + moderately loose monetary policy.
-- Stressed energy security, countering external shocks.
-- Called for stabilizing property market, addressing local gov debt risks.
-- Focus on domestic demand via infrastructure and services.
+### 财报（4月29日）
+- MSFT：超预期，Azure +40%。GOOG：超预期，股价飙升。AMZN：超预期。META：超预期但股价暴跌（上调资本支出）。
 
-### Fiscal Policy
-- Spending pulled back in March (-2.5% YoY) — keeping powder dry.
-- 8000B yuan new policy financial instruments being deployed.
-
-### Property
-- Still structurally challenged. Politburo mentions "stabilize" but no aggressive new stimulus.
-
-### RMB
-- USD/CNY stable around 6.835. PBOC maintaining tight range.
-- Cross-border RMB settlement hit 35.6% of trade in March (record high). "Petro-yuan" narrative gaining traction.
+### 市场情绪
+- 达利奥：美国"确实处于滞胀期"。
+- 伊朗战争的高能源价格大致抵消了减税对家庭的好处。
 
 ---
 
-## AI Industry State
+## 中国经济状态
 
-*See `knowledge/ai-landscape.md` for detailed company/supply chain map.*
+### 增长
+- **Q1 2026 GDP同比5.0%**（超预期4.8%），较Q4 2025的4.5%上升。三个季度最强。
+- 增长目标：4.5-5.0%区间（1990年代以来最不激进）。
+- 出口驱动（Q1同比+14.7%），但消费仍弱。
 
-### Current Themes (Apr 2026)
-- US hyperscaler capex cycle continues — MSFT, GOOG, META, AMZN all investing heavily in AI infra.
-- META raised capex guidance (shares dropped despite earnings beat) — market questioning ROI timeline.
-- **Google announced TPU 8t/8i** (8th gen) — first time splitting training and inference chips. Built with Broadcom (8t) and MediaTek (8i). Both on TSMC 2nm, targeting late 2027. Anthropic deal expanded to 3.5GW.
-- China banned foreign AI chips from state-funded data centers — accelerating domestic chip substitution.
-- **SMIC surged 7.75% in HK** on AI chip demand narrative (Apr 30).
-- US weighing additional export controls on AI chips to China.
-- DeepSeek and Chinese open-source models narrowing gap with Western frontier models.
-- AI optical modules (Zhongji Innolight 300308.SZ) hitting record highs on strong demand.
-- IBM unveiled analog AI chip for high-efficiency inference.
+### 关键指标
+- **3月出口**：骤降至+2.5%（1-2月为+21.8%）— 伊朗战争扰乱航运/需求。
+- **零售**：3月同比+1.7%（此前+2.8%）— 消费仍是短板。
+- **PPI**：3月转正，3年多来首次 — 能源成本向制造业渗透。
+- **制造业PMI**：3月回到扩张区间（50以上）。
+
+### 央行/货币政策
+- LPR连续11个月不变：1年期3.0%，5年期3.5%。
+- 基调："支持性"和"适度宽松"。降息预期推后。
+- 央行在流动性充裕情况下继续注入。货币市场利率接近3年低点。
+- 预计出现结构性通胀（PPI-CPI背离）— 央行不太可能收紧。
+
+### 政治局会议（4月28-29日）
+- 承诺有针对性的积极财政+适度宽松货币政策。
+- 强调能源安全，应对外部冲击。
+- 要求稳定房地产市场，化解地方政府债务风险。
+- 聚焦通过基础设施和服务消费扩大内需。
+
+### 财政政策
+- 3月财政支出同比-2.5% — 保留政策空间。
+- 8000亿元新型政策性金融工具正在部署。
+
+### 房地产
+- 仍面临结构性困难。政治局提及"稳定"但无激进新刺激。
+
+### 人民币
+- 美元/人民币稳定在6.827附近，人民币走强。央行维持窄幅区间。
+- 3月跨境人民币结算占贸易比重35.6%（历史新高）。"石油人民币"叙事升温。
 
 ---
 
-## Market Regime
+## AI产业状态
 
-### Current Regime: Cautious / Range-bound
-- **US equities**: range-bound near all-time highs. Earnings supporting but macro headwinds (sticky inflation, Iran, tariffs).
-- **China A-shares**: resilient (lower volatility than global peers). Holding above 4,100 on Shanghai Composite.
-- **Hang Seng**: more volatile, sensitive to US-China sanctions news. Pulled back from 26,100.
-- **Commodities**: gold/silver/oil rallying on geopolitical bid + inflation hedge.
-- **USD**: DXY ~99, slight rebound ahead of Fed. Had 8-week decline streak earlier.
-- **Bonds**: yields rising (10Y at 4.42%) — market pricing in longer-lasting inflation.
+*详见 `knowledge/ai-landscape.md` 获取公司/供应链详细地图。*
 
-### Key Upcoming Catalysts
-- China April PMI (May 1)
-- Trump-Xi summit (mid-May)
-- China April trade data (mid-May)
-- US Section 301 tariff hearings (starting now)
-- Warsh Fed confirmation
-- Iran ceasefire developments
+### 当前主题（2026年4月）
+- 美国超大规模资本支出周期持续 — MSFT、GOOG、META、AMZN均大举投资AI基础设施。
+- META上调资本支出指引（业绩超预期但股价暴跌）— 市场质疑ROI时间线。
+- **谷歌发布TPU 8t/8i**（第8代）— 首次将训练和推理芯片分开设计。与Broadcom（8t）和MediaTek（8i）合作。均采用台积电2nm，预计2027年下半年上市。Anthropic合约扩大至3.5GW。
+- 中国禁止国资数据中心使用外国AI芯片 — 加速国产替代。
+- **中芯国际港股大涨7.75%** — AI芯片需求叙事（4月30日）。
+- 美国考虑进一步限制AI芯片对华出口。
+- DeepSeek及中国开源模型正在缩小与西方前沿模型的差距。
+- AI光模块（中际旭创 300308.SZ）受强劲需求推动创新高。
+- IBM发布模拟AI芯片，用于高效推理。
+
+---
+
+## 市场体制
+
+### 当前体制：谨慎/区间震荡
+- **美股**：在历史高位附近区间震荡。财报支撑但宏观逆风（粘性通胀、伊朗、关税）。
+- **A股**：韧性较强（波动率低于全球同类）。上证守住4,100上方。
+- **恒生**：波动更大，对中美制裁新闻敏感。从26,100回落。
+- **大宗商品**：黄金/白银/原油因地缘政治买盘+通胀对冲上涨。
+- **美元**：DXY ~98.5，走弱。此前有8周下跌趋势。
+- **债券**：收益率上行（10Y 4.39%）— 市场定价持久通胀。
+
+### 即将到来的关键催化剂
+- 中国4月PMI（5月1日）
+- 特朗普-习近平峰会（5月中旬）
+- 中国4月贸易数据（5月中旬）
+- 美国301条款关税听证会（已启动）
+- 沃什美联储确认
+- 伊朗停火进展

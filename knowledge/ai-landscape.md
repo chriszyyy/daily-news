@@ -1,134 +1,134 @@
-# AI Industry Landscape — Living Document
+# AI产业版图 — 持续更新文档
 
-*Last updated: 2026-04-30*
-
----
-
-## US AI Leaders
-
-### Chip / Infrastructure (Picks & Shovels)
-
-| Company | Ticker | Price | Market Cap | P/E | Rev Growth | AI Role | Rating |
-|---------|--------|-------|------------|-----|------------|---------|--------|
-| NVIDIA | NVDA | $209.25 | $5.09T | 42.7 | +73.2% | GPU monopoly — training + inference | Strong Buy |
-| AMD | AMD | $337.11 | $550B | 129.7 | +34.1% | Instinct MI-series, EPYC CPUs | Buy |
-| TSMC | TSM | $393.83 | $2.04T | 33.7 | +35.1% | Fab for all leading AI chips | Strong Buy |
-| Broadcom | AVGO | — | — | — | — | AI networking (custom ASICs, NICs) | — |
-| Super Micro | SMCI | $26.32 | $15.8B | 19.2 | +123.4% | AI server assembly, liquid cooling | Hold |
-
-### Cloud / Platform (Hyperscalers)
-
-| Company | Ticker | AI Product | Status |
-|---------|--------|------------|--------|
-| Microsoft | MSFT | Azure AI, OpenAI partnership, Copilot | Azure +40% growth. Largest AI capex spender |
-| Alphabet | GOOGL | Gemini models, Google Cloud AI, DeepMind | Q1 beat. Cloud AI growing fast |
-| Amazon | AMZN | AWS Bedrock, custom Trainium/Inferentia chips | Q1 beat. Building custom AI silicon |
-| Meta | META | Llama open-source models, AI infra | Beat but stock dropped — raised capex guidance, market questioning ROI |
-
-### AI Software / Applications
-- OpenAI (private) — GPT series, ChatGPT, enterprise APIs
-- Anthropic (private) — Claude models, enterprise safety focus
-- Palantir (PLTR) — AI for government/enterprise
-- CrowdStrike, Palo Alto — AI-powered cybersecurity
-- ServiceNow, Salesforce — AI enterprise agents
+*最后更新：2026-04-30*
 
 ---
 
-## China AI Leaders
+## 美国AI领军企业
 
-### Models & Platforms
+### 芯片/基础设施（卖铲人）
 
-| Company | Ticker(s) | AI Product | Notes |
-|---------|-----------|------------|-------|
-| Baidu | BIDU / 9888.HK | ERNIE Bot, ERNIE 4.0, Apollo Go (autonomous driving) | Revenue declining (-4.1%). Strong Buy rating. AI cloud + autonomous driving play |
-| Alibaba | BABA / 9988.HK | Qwen models (open-source), Alibaba Cloud AI | Cloud AI growing. Open-sourcing aggressively |
-| Tencent | 0700.HK | Hunyuan model, AI integration across WeChat/gaming | Less AI-pure but massive distribution |
-| ByteDance | Private | Doubao model, AI in TikTok/Douyin | Major AI investor but not publicly traded |
-| DeepSeek | Private | DeepSeek-V2/V3, open-source frontier models | Narrowing gap with GPT-4 class. Backed by quant fund High-Flyer |
-| Zhipu AI | Private | GLM-4 series | One of China's leading model startups |
-| Moonshot AI (Kimi) | Private | Kimi chat assistant | Popular consumer AI product in China |
-| iFlytek | 002230.SZ | Speech AI, education AI | Leading Chinese speech recognition |
-| SenseTime | 0020.HK | SenseNova models, computer vision, AI chips | Government-linked, surveillance + enterprise AI |
+| 公司 | 代码 | 价格 | 市值 | P/E | 营收增速 | AI角色 | 评级 |
+|------|------|------|------|-----|----------|--------|------|
+| NVIDIA | NVDA | $201.67 | $4.90T | 41.2 | +73.2% | GPU垄断 — 训练+推理 | 强力买入 |
+| AMD | AMD | $337.11 | $550B | 129.7 | +34.1% | Instinct MI系列, EPYC CPU | 买入 |
+| TSMC | TSM | $389.17 | $2.02T | 33.3 | +35.1% | 所有领先AI芯片的代工厂 | 强力买入 |
+| Broadcom | AVGO | — | — | — | — | AI网络（定制ASIC, NIC）；谷歌TPU 8t合作方 | — |
+| Super Micro | SMCI | $26.62 | $16.0B | 19.4 | +123.4% | AI服务器组装、液冷 | 持有 |
 
-### China AI Chips & Hardware
+### 云/平台（超大规模厂商）
 
-| Company | Ticker | Role | Notes |
-|---------|--------|------|-------|
-| Cambricon | 688256.SS | AI training/inference chips | A-share only. China's leading AI chip designer |
-| SMIC | 0981.HK / 688981.SS | Chip fabrication | Largest Chinese foundry. Under US sanctions |
-| Hua Hong | 1347.HK | Chip fabrication | Second-largest Chinese foundry |
-| Zhongji Innolight | 300308.SZ | AI optical modules (800G/1.6T) | Hit record highs on AI data center demand |
-| NAURA Technology | 002371.SZ | Semiconductor equipment | China's leading chip equipment maker |
-| Hygon (Haiguang) | 688041.SS | x86-compatible server CPUs | AMD-derived architecture, used in Chinese data centers |
+| 公司 | 代码 | AI产品 | 状态 |
+|------|------|--------|------|
+| Microsoft | MSFT | Azure AI, OpenAI合作, Copilot | Azure +40%增长。最大AI资本支出方 |
+| Alphabet | GOOGL | Gemini模型, Google Cloud AI, DeepMind, TPU 8t/8i | Q1超预期。发布第8代TPU |
+| Amazon | AMZN | AWS Bedrock, 自研Trainium/Inferentia芯片 | Q1超预期。构建自研AI芯片 |
+| Meta | META | Llama开源模型, AI基础设施 | 超预期但股价暴跌 — 上调资本支出，市场质疑ROI |
+
+### AI软件/应用
+- OpenAI（私有）— GPT系列, ChatGPT, 企业API
+- Anthropic（私有）— Claude模型, 企业安全聚焦。谷歌TPU核心客户，合约扩至3.5GW（2027年）
+- Palantir (PLTR) — 政府/企业AI
+- CrowdStrike, Palo Alto — AI驱动的网络安全
+- ServiceNow, Salesforce — AI企业智能体
 
 ---
 
-## AI Supply Chain Map
+## 中国AI领军企业
+
+### 模型与平台
+
+| 公司 | 代码 | AI产品 | 备注 |
+|------|------|--------|------|
+| 百度 | BIDU / 9888.HK | 文心一言, ERNIE 4.0, Apollo Go（自动驾驶） | 营收下降(-4.1%)。强力买入评级。AI云+自动驾驶 |
+| 阿里巴巴 | BABA / 9988.HK | 通义千问（开源）, 阿里云AI | 云AI增长。积极开源 |
+| 腾讯 | 0700.HK | 混元模型, AI融入微信/游戏 | AI纯度较低但分发能力强大 |
+| 字节跳动 | 私有 | 豆包模型, TikTok/抖音AI | 主要AI投资者但未上市 |
+| 深度求索 (DeepSeek) | 私有 | DeepSeek-V2/V3, 开源前沿模型 | 正在缩小与GPT-4级别的差距。量化基金幻方支持 |
+| 智谱AI | 私有 | GLM-4系列 | 中国领先模型创业公司之一 |
+| 月之暗面 (Kimi) | 私有 | Kimi聊天助手 | 中国热门消费级AI产品 |
+| 科大讯飞 | 002230.SZ | 语音AI, 教育AI | 中国领先语音识别 |
+| 商汤科技 | 0020.HK | 日日新大模型, 计算机视觉, AI芯片 | 政府关联，安防+企业AI |
+
+### 中国AI芯片与硬件
+
+| 公司 | 代码 | 角色 | 备注 |
+|------|------|------|------|
+| 寒武纪 | 688256.SS | AI训练/推理芯片 | A股。中国领先AI芯片设计商 |
+| 中芯国际 | 0981.HK / 688981.SS | 芯片制造 | 中国最大代工厂。受美国制裁。**4月30日港股+7.75%** |
+| 华虹 | 1347.HK | 芯片制造 | 中国第二大代工厂 |
+| 中际旭创 | 300308.SZ | AI光模块（800G/1.6T） | 受AI数据中心需求推动创新高 |
+| 北方华创 | 002371.SZ | 半导体设备 | 中国领先芯片设备厂商 |
+| 海光信息 | 688041.SS | x86兼容服务器CPU | AMD衍生架构，用于中国数据中心 |
+
+---
+
+## AI供应链地图
 
 ```
-[AI Models] ← Training on → [GPU Chips] ← Fabricated by → [Foundries]
-     |                            |                              |
-  OpenAI, Anthropic,        NVIDIA (NVDA)                  TSMC (TSM)
-  Google, Meta, Baidu,      AMD (AMD)                      SMIC (sanctioned)
-  DeepSeek, Alibaba         Broadcom (AVGO)                Hua Hong
-                            Cambricon (China)
-                                 |
-                        [Server Assembly]
-                         SMCI, Dell, Lenovo
-                                 |
-                        [Networking/Optical]
-                         Zhongji Innolight (300308.SZ)
+[AI模型] ← 训练于 → [GPU芯片] ← 制造于 → [代工厂]
+     |                      |                      |
+  OpenAI, Anthropic,    NVIDIA (NVDA)          TSMC (TSM)
+  Google, Meta, 百度,   AMD (AMD)              中芯国际（制裁下）
+  DeepSeek, 阿里       Broadcom (AVGO)         华虹
+                        寒武纪（中国）
+                             |
+                        [服务器组装]
+                         SMCI, Dell, 联想
+                             |
+                        [网络/光模块]
+                         中际旭创 (300308.SZ)
                          Broadcom, Arista
-                                 |
-                        [Data Centers / Cloud]
-                         MSFT Azure, GOOG, AMZN, 
-                         Alibaba Cloud, Baidu Cloud
+                             |
+                        [数据中心/云]
+                         MSFT Azure, GOOG, AMZN,
+                         阿里云, 百度云
 ```
 
 ---
 
-## US-China AI Rivalry — Current State
+## 中美AI竞争 — 当前态势
 
-### US Restrictions on China
-- **Chip export controls**: Advanced NVIDIA GPUs (H100, A100, H800) banned for export to China since Oct 2022, tightened in Oct 2023
-- **Entity list**: SMIC, Huawei, and dozens of Chinese AI/chip companies restricted
-- **AI chip ban from state data centers**: China retaliated by banning foreign AI chips from government-funded data centers (Apr 2026)
-- **Additional controls under consideration**: US weighing further restrictions on AI chip exports
+### 美国对华限制
+- **芯片出口管制**：先进NVIDIA GPU (H100, A100, H800) 自2022年10月起禁止对华出口，2023年10月收紧
+- **实体清单**：中芯国际、华为及数十家中国AI/芯片公司受限
+- **国资数据中心禁用外国AI芯片**：中国反制，禁止政府资助数据中心使用外国AI芯片（2026年4月）
+- **考虑进一步管制**：美国正权衡对华AI芯片出口的更多限制
 
-### China's Response
-- Accelerating domestic chip development (Cambricon, Hygon, Huawei Ascend)
-- Open-sourcing AI models (DeepSeek, Qwen, GLM) to build ecosystem without US dependency
-- Stockpiling chips before new restrictions take effect
-- PBOC/government directing investment into semiconductor self-sufficiency
+### 中国应对
+- 加速国产芯片研发（寒武纪、海光、华为昇腾）
+- 开源AI模型（DeepSeek、通义千问、GLM）构建不依赖美国的生态
+- 在新限制生效前囤积芯片
+- 央行/政府引导投资半导体自主可控
 
-### Key Tension Points
-- TSMC (Taiwan) — fabricates chips for both US and China; Taiwan's geopolitical status adds risk
-- Rare earth controls — China controls ~60% of global rare earth mining, ~90% of processing
-- AI talent flow — restrictions on Chinese nationals at US AI labs being discussed
+### 关键紧张点
+- TSMC（台湾）— 为中美双方代工芯片；台湾地缘政治地位增加风险
+- 稀土管制 — 中国控制全球约60%稀土开采、约90%加工
+- AI人才流动 — 限制中国国籍人员在美国AI实验室工作的讨论
 
 ---
 
-## AI Investment Themes for China Stocks
+## 中国股票的AI投资主题
 
-### 1. Domestic Chip Substitution (Bullish China)
-If US tightens export controls → more demand for Cambricon, SMIC, Hygon, NAURA
-- **Watch**: any new entity list additions or chip ban announcements
+### 1. 国产芯片替代（看多中国）
+若美国收紧出口管制 → 寒武纪、中芯国际、海光、北方华创需求增加
+- **关注**：任何新实体清单或芯片禁令公告
 
-### 2. AI Infrastructure Build-out (Bullish)
-China building "智算中心" (AI compute centers) nationwide
-- **Beneficiaries**: Zhongji Innolight (optical), Cambricon (chips), server makers
-- **Watch**: government procurement announcements, data center capex data
+### 2. AI基础设施建设（看多）
+中国全国建设"智算中心"
+- **受益者**：中际旭创（光模块）、寒武纪（芯片）、服务器厂商
+- **关注**：政府采购公告、数据中心资本支出数据
 
-### 3. AI Application Monetization (Medium-term)
-Baidu (ERNIE), Alibaba (Qwen), Tencent (Hunyuan) — can they monetize AI?
-- Baidu revenue declining — needs AI cloud to reverse trend
-- **Watch**: quarterly cloud revenue growth, enterprise AI adoption metrics
+### 3. AI应用商业化（中期）
+百度（文心）、阿里（通义千问）、腾讯（混元）— 能否实现AI商业化？
+- 百度营收下降 — 需要AI云业务扭转趋势
+- **关注**：季度云收入增长、企业AI采用指标
 
-### 4. Autonomous Driving (Long-term)
-Baidu Apollo Go, Huawei (through partners), Pony.ai, WeRide
-- **Watch**: regulatory approvals for robotaxi expansion, ride volumes
+### 4. 自动驾驶（长期）
+百度Apollo Go、华为（通过合作伙伴）、小马智行、文远知行
+- **关注**：自动驾驶出租车扩张的监管审批、乘坐量
 
-### 5. Open-Source AI (China advantage?)
-DeepSeek, Qwen, GLM models competitive with Western closed models at lower cost
-- If open-source wins → China AI companies benefit from lower barrier to entry
-- **Watch**: benchmark results, enterprise adoption of Chinese models
+### 5. 开源AI（中国优势？）
+DeepSeek、通义千问、GLM模型在成本更低的情况下与西方闭源模型竞争
+- 若开源胜出 → 中国AI公司受益于更低的进入门槛
+- **关注**：基准测试结果、中国模型的企业采用

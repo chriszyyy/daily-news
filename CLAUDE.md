@@ -127,7 +127,7 @@ When asked to collect daily news (`/loop` or manual run):
 8. **Pull macro data** — Use FRED for any new US economic releases (CPI, NFP, GDP, etc.)
 
 ### Phase 3: Analysis & Output
-9. **Write report** — Structured daily briefing in `reports/YYYY-MM-DD.md` (English) and `reports/YYYY-MM-DD-cn.md` (Chinese). Include a "Changes Since Yesterday" summary and a dedicated "AI & Technology" section
+9. **Write report** — Structured daily briefing in `reports/YYYY-MM-DD.md` (Chinese 中文). Include a "与昨日相比的变化" summary and a dedicated "AI与科技" section. All report content in Chinese; keep ticker symbols, financial terms (P/E, SAAR, WTI etc.) in English
 10. **Generate signals** — New trading signals with reasoning, plus follow-up on all prior open signals
 11. **Track decisions** — Log to `decisions/YYYY-MM-DD.md` and update `decisions/positions.md`
 12. **Update knowledge** — Update knowledge docs ONLY when state actually changes (see Knowledge Update Triggers below)
@@ -179,84 +179,84 @@ Update `knowledge/ai-landscape.md` when:
 Each daily report should follow this structure:
 
 ```markdown
-# Daily Intelligence Briefing — YYYY-MM-DD
+# 每日情报简报 — YYYY-MM-DD
 
-## Changes Since Yesterday
-- Summary of what moved overnight / since last report
-- Open position updates (any stop-loss / take-profit triggers)
-- Prior signal follow-ups (what happened to yesterday's calls)
+## 与昨日相比的变化
+- 隔夜/上次报告以来的主要变动
+- 持仓更新（止损/止盈是否触发）
+- 此前信号跟进（昨日建议的后续）
 
-## US Market Snapshot (prior day close)
-| Asset | Price | Change | Trend |
-|-------|-------|--------|-------|
-| S&P 500 | ... | ... | ... |
-| NASDAQ | ... | ... | ... |
-| DXY | ... | ... | ... |
-| US 10Y Yield | ... | ... | ... |
+## 美股市场概览（前一交易日收盘）
+| 资产 | 价格 | 涨跌 | 趋势 |
+|------|------|------|------|
+| 标普500 | ... | ... | ... |
+| 纳斯达克 | ... | ... | ... |
+| 美元指数 (DXY) | ... | ... | ... |
+| 美国10年期国债 | ... | ... | ... |
 
-## China Market Snapshot (today's close)
-| Asset | Price | Change | Trend |
-|-------|-------|--------|-------|
-| Shanghai Composite | ... | ... | ... |
-| Hang Seng | ... | ... | ... |
-| USD/CNY | ... | ... | ... |
+## 中国市场概览（当日收盘）
+| 资产 | 价格 | 涨跌 | 趋势 |
+|------|------|------|------|
+| 上证综指 | ... | ... | ... |
+| 恒生指数 | ... | ... | ... |
+| 美元/人民币 | ... | ... | ... |
 
-## Commodities (latest)
-| Asset | Price | Change | Trend |
-|-------|-------|--------|-------|
-| Gold | ... | ... | ... |
-| Silver | ... | ... | ... |
-| Oil (WTI) | ... | ... | ... |
-| Copper | ... | ... | ... |
+## 大宗商品（最新）
+| 资产 | 价格 | 涨跌 | 趋势 |
+|------|------|------|------|
+| 黄金 | ... | ... | ... |
+| 白银 | ... | ... | ... |
+| 原油 (WTI) | ... | ... | ... |
+| 铜 | ... | ... | ... |
 
-## US News & Economy
+## 美国新闻与经济
 - ...
 
-## China News & Economy
+## 中国新闻与经济
 - ...
 
-## US-China Relations & Trade
+## 中美关系与贸易
 - ...
 
-## Global Geopolitics
+## 全球地缘政治
 - ...
 
-## AI & Technology
-- AI model releases, chip news, AI capex/earnings
-- US-China AI rivalry developments
-- AI stock movers (with tickers and price changes)
+## AI与科技
+- AI模型发布、芯片新闻、AI资本支出/财报
+- 中美AI竞争动态
+- AI相关股票（附代码和价格变动）
 
-## Key Risks & Watchlist
+## 关键风险与关注清单
 - ...
 
-## Action Items — China Stock Trading Signals
-For each signal, state: **Action** (Buy / Sell / Hold / Avoid), **Target** (sector, index, or specific stock), **Reasoning**, **Confidence** (High / Medium / Low), and **Time Horizon** (intraday / short-term / medium-term).
+## 操作建议 — 中国股票交易信号
+每个信号注明：**操作**（买入/卖出/持有/回避）、**标的**（板块、指数或个股）、**逻辑**、**信心**（高/中/低）、**时间周期**
 
-| Action | Target | Reasoning | Confidence | Horizon |
-|--------|--------|-----------|------------|---------|
-| Buy/Sell/Hold/Avoid | sector or ticker | why | H/M/L | timeframe |
+| 操作 | 标的 | 逻辑 | 信心 | 周期 |
+|------|------|------|------|------|
+| 买入/卖出/持有/回避 | 板块或代码 | 原因 | 高/中/低 | 时间 |
 
-### Key China Sectors to Monitor
-- Tech / AI (Alibaba, Tencent, Baidu, SenseTime, iFlytek)
-- AI Chips & Hardware (Cambricon, SMIC, Hua Hong, Zhongji Innolight)
-- EV / New Energy (BYD, NIO, Li Auto, CATL)
-- Financials / Banks (ICBC, China Merchants Bank)
-- Property (Vanke, Country Garden, Longfor)
-- Consumer / Retail (Moutai, Li Ning, Anta)
-- Semiconductors (SMIC, Hua Hong, NAURA)
-- Defense / Military
-- Healthcare / Biotech
+### 重点关注的中国板块
+- 科技/AI（阿里巴巴、腾讯、百度、商汤、科大讯飞）
+- AI芯片与硬件（寒武纪、中芯国际、华虹、中际旭创）
+- 新能源车（比亚迪、蔚来、理想、宁德时代）
+- 金融/银行（工商银行、招商银行）
+- 房地产（万科、碧桂园、龙湖）
+- 消费/零售（茅台、李宁、安踏）
+- 半导体（中芯国际、华虹、北方华创）
+- 国防军工
+- 医疗/生物科技
 
-### Signal Framework
-Signals are derived by combining:
-1. **Macro signals**: US Fed policy direction, USD/CNY movement, US-China trade status
-2. **China domestic signals**: PBOC actions, stimulus, PMI, property data, regulatory tone
-3. **Sentiment signals**: news sentiment, capital flows (northbound/southbound via Stock Connect)
-4. **Technical signals**: index trend, support/resistance levels, volume patterns
-5. **Geopolitical risk**: escalation vs de-escalation in US-China, Taiwan, sanctions
+### 信号框架
+信号由以下维度综合得出：
+1. **宏观信号**：美联储政策方向、美元/人民币走势、中美贸易状态
+2. **中国国内信号**：央行动作、刺激政策、PMI、房地产数据、监管基调
+3. **情绪信号**：新闻情绪、资金流向（陆股通/港股通）
+4. **技术信号**：指数趋势、支撑/阻力位、成交量
+5. **地缘政治风险**：中美关系升级/缓和、台海、制裁
 
-### Important Disclaimer
-These signals are for informational and educational purposes only. They are NOT financial advice. Always do your own research and consider your risk tolerance before trading.
+### 重要声明
+以上信号仅供信息参考和教育用途，不构成投资建议。投资前请自行研究并评估风险承受能力。
 ```
 
 ## File Structure
@@ -267,9 +267,8 @@ daily-news/
 ├── knowledge/                   # Living knowledge base (accumulated context)
 │   ├── context.md               # Global macro/geopolitical/market state
 │   └── ai-landscape.md          # AI industry map, key players, supply chain
-├── reports/                     # Daily briefing reports
-│   ├── YYYY-MM-DD.md            # English version
-│   └── YYYY-MM-DD-cn.md         # Chinese version (中文版)
+├── reports/                     # Daily briefing reports (中文)
+│   └── YYYY-MM-DD.md            # Chinese version (中文版)
 ├── decisions/                   # Trading decision memory system
 │   ├── positions.md             # Current open positions & watchlist (living document)
 │   ├── YYYY-MM-DD.md            # Daily decision log
@@ -299,58 +298,58 @@ Sections: US AI Leaders, China AI Leaders, Chip Supply Chain, AI Regulation, US-
 Created alongside each daily report. Records:
 
 ```markdown
-# Decision Log — YYYY-MM-DD
+# 决策日志 — YYYY-MM-DD
 
-## Signals Issued Today
-| # | Action | Target | Entry Price | Reasoning | Confidence | Horizon | Status |
-|---|--------|--------|-------------|-----------|------------|---------|--------|
-| 1 | Buy | ... | ... | ... | H/M/L | ... | OPEN |
+## 今日发出的信号
+| # | 操作 | 标的 | 入场价格 | 逻辑 | 信心 | 周期 | 状态 |
+|---|------|------|----------|------|------|------|------|
+| 1 | 买入 | ... | ... | ... | 高/中/低 | ... | 开仓 |
 
-## Follow-up on Prior Signals
-| Original Date | # | Target | Original Action | Current Price | P&L | Update | New Status |
-|---------------|---|--------|-----------------|---------------|-----|--------|------------|
-| 2026-04-29 | 1 | ... | Buy | ... | +2% | ... | OPEN/CLOSED/STOPPED |
+## 此前信号跟进
+| 原始日期 | # | 标的 | 原始操作 | 当前价格 | 盈亏 | 更新 | 新状态 |
+|----------|---|------|----------|----------|------|------|--------|
+| 2026-04-29 | 1 | ... | 买入 | ... | +2% | ... | 开仓/平仓/止损 |
 
-## Key Context for Tomorrow
-- Upcoming events that may affect open positions
-- Data releases to watch
-- Risks carried forward
+## 明日关注要点
+- 可能影响持仓的即将事件
+- 需关注的数据发布
+- 延续的风险
 ```
 
 ### 2. Positions Tracker (`decisions/positions.md`)
 A **living document** updated daily — the single source of truth for what's active:
 
 ```markdown
-# Active Positions & Watchlist
+# 活跃持仓与关注清单
 
-## Open Positions
-| Opened | Target | Action | Entry Price | Current Price | P&L | Stop Loss | Take Profit | Status | Notes |
-|--------|--------|--------|-------------|---------------|-----|-----------|-------------|--------|-------|
+## 开仓持仓
+| 开仓日期 | 标的 | 操作 | 入场价 | 当前价 | 盈亏 | 止损 | 止盈 | 状态 | 备注 |
+|----------|------|------|--------|--------|------|------|------|------|------|
 
-## Watchlist (Waiting for Entry)
-| Added | Target | Planned Action | Trigger Condition | Notes |
-|-------|--------|----------------|-------------------|-------|
+## 关注清单（等待入场）
+| 添加日期 | 标的 | 计划操作 | 触发条件 | 备注 |
+|----------|------|----------|----------|------|
 
-## Recently Closed
-| Opened | Closed | Target | Action | Entry | Exit | P&L | Reason |
-|--------|--------|--------|--------|-------|------|-----|--------|
+## 近期平仓
+| 开仓 | 平仓 | 标的 | 操作 | 入场 | 出场 | 盈亏 | 原因 |
+|------|------|------|------|------|------|------|------|
 ```
 
 ### 3. Periodic Review (`decisions/review.md`)
 Updated weekly or on-demand. Tracks signal accuracy and lessons:
 
 ```markdown
-# Signal Review
+# 信号回顾
 
-## Accuracy Tracker
-| Period | Total Signals | Correct | Wrong | Accuracy | Notes |
-|--------|---------------|---------|-------|----------|-------|
+## 准确率追踪
+| 时期 | 总信号数 | 正确 | 错误 | 准确率 | 备注 |
+|------|----------|------|------|--------|------|
 
-## Lessons Learned
-- What worked, what didn't, pattern adjustments
+## 经验教训
+- 哪些有效、哪些无效、模式调整
 
-## Bias Check
-- Am I consistently wrong on a sector? Over-confident? Under-reacting to geopolitical risk?
+## 偏差检查
+- 是否在某个板块持续判断错误？过度自信？对地缘政治风险反应不足？
 ```
 
 ### How Memory Works Across Sessions
