@@ -106,6 +106,13 @@ When asked to collect daily news (`/loop` or manual run):
 1. **每个step都必须执行**，无论是否假期、休市或数据有限。假期时技术指标用最新可用数据，新标的发掘和供应链扫描不依赖实时行情。
 2. **开始workflow前必须用TodoWrite构建完整的21步任务清单**，每完成一步标记completed再进入下一步。禁止跳过任何步骤。
 3. 如果某步因客观原因（如API限流）无法完成，在TodoWrite中标注原因，但仍需尝试替代方案（如WebSearch替代Exa）。
+4. **Exa等搜索工具触发速率限制时必须等待冷却（60-120秒）后重试**，不得跳过或留到下次session补跑。完整性 > 执行速度。Bash `sleep 90 && echo done`即可。
+5. **市场状态验证**：用户时区为UTC+8（北京时间）。判断A股/港股是否开盘/收盘前，必须先用 Bash `date` 确认当前BJT时间，并用 Yahoo Finance `marketState` 字段交叉验证：
+   - `REGULAR` = 交易中
+   - `POSTPOST` = 已收盘（有当日收盘价）
+   - `PREPRE`/`PRE` = 未开盘（**Yahoo返回的"日内数据"实为上一交易日的历史值**，必须标注为stale，不可作为今日数据采信）
+   - A股交易时间：9:30-11:30 + 13:00-15:00 BJT；港股9:30-12:00 + 13:00-16:00 BJT
+6. **News agent返回数据需交叉验证**：subagent返回的"今日已收盘"或"未来时间点"市场数据必须用 Yahoo Finance `marketState` + `regularMarketTime` 字段验证。如marketState=PREPRE但agent给出"已收盘价"，则该数据必为projected/futures contract，标记为"⚠未验证"，不写入持仓盈亏计算。
 
 ### Phase 1: Context Loading (do this FIRST)
 1. **Load knowledge base** — Read `knowledge/context.md`, `knowledge/ai-landscape.md`, and `knowledge/watchlist-sectors.md` to understand current world state, AI industry map, and tracked sectors/tickers
@@ -204,10 +211,13 @@ Run at least these searches each session (add more as needed):
 | 9 | — | `低估值 被忽视 AI算力 供应链 港股折价` | Undervalued / overlooked plays |
 
 ### Data Freshness Rules
+- **用户时区**：UTC+8（北京时间）。所有"今日/明日"判断以BJT为准，先用 `date` 命令确认。
+- **市场交易时间（BJT）**：A股 9:30-11:30 + 13:00-15:00；港股 9:30-12:00 + 13:00-16:00；美股21:30-04:00（夏令时）
 - **US market data**: prior trading day's close (US markets close after Asia opens)
 - **China market data**: same-day close (Shanghai/HK close before US opens)
 - **Commodities/Forex**: latest available (near real-time via futures)
-- Always label which session/date each price comes from in the report tables
+- **Yahoo Finance `marketState` 字段是市场状态的权威来源**：REGULAR=交易中, POSTPOST=已收盘, PREPRE/PRE=未开盘（日内字段为stale历史值）
+- Always label which session/date each price comes from in the report tables（如"5/7 10:30 BJT 盘中"、"5/7收盘"、"4/30收盘（节前）"）
 
 ### Tool Usage Guide
 | Tool | Primary Use | When to Prefer |
