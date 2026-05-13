@@ -131,6 +131,8 @@
 | 21 | 2026-05-10 | 2026-05-10 | **瓶颈资产投资框架**（4.4亿大佬方法论）：CLAUDE.md新增强制规则#7+step 14新增G框架（6问+三维度）+仓位管理新增3-10%硬约束+卖出标准；新建`knowledge/bottleneck-framework.md`操作手册 |
 | 22 | 2026-05-10 | 2026-05-10 | **工具failure SOP**：CLAUDE.md强制规则#3升级（永不让工具问题终止任务）+Tool Usage Guide加fallback列；新建`knowledge/tool-fallbacks.md`完整操作手册（5个MCP的Playwright fallback映射+URL速查表） |
 | 23 | 2026-05-12 | 2026-05-12 | **滞涨/认知差标签 4 维强制校验**：CLAUDE.md 新增"📊 滞涨/认知差 标签强制 4 维校验" section(52w+区间分位/近20日/近5日/放量),与 NO GUESSING 同级;signal-generation Gate 1 强制 4 维表 + 取消阈值;fundamental-deepdive B 维度新增 4 维必报;discover-new-stocks 入选条件加 4 维;briefing-audit Check 2 新增 2 项 FAIL 检查(滞涨标签未取消视为 FAIL);新增 `memory/feedback_lag_tag_multidim.md`。来源:国茂 603915 误标"52w +5% 滞涨"实际近20日+15.3% 已启动,赔率从 5x 压到 1.4x |
+| 24 | 2026-05-12 | 2026-05-12 | **P&L 术语严格区分(累计 vs 当日 vs 已实现)**: CLAUDE.md 新增"💰 P&L 术语严格区分"section,3 个术语公式表 + 反模式 + 正确做法。来源: 5/12 收盘报告写"当日贡献 +¥1,314"实际是"累计浮盈 +¥1,070 + 已实现 +¥244",真正当天净赚仅 +¥491,用户问"怎么算的"才发现混淆。强制持仓总览段同时给"累计"和"当日"两栏 |
+| 25 | 2026-05-12 | 2026-05-12 | **🗂 单一事实源(SSOT)防文档漂移**: CLAUDE.md 新增"🗂 单一事实源"section + 数据归属表(价格 → positions.md 唯一);briefing-audit Check 6 强制 grep 全文档价格对账;daily-briefing P1.1 注明 knowledge/* 价格视为冻结快照;watchlist-sectors / research INDEX 已 fix 国茂从"¥17.72/¥17.65"改为"已建仓 详见 positions.md"。来源: 国茂同一标的价格散落 8 个文件不一致(positions ¥17.58 / watchlist ¥17.72 / INDEX ¥17.65),用户提出"文档漂移导致结论偏差" |
 
 ---
 
