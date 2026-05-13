@@ -80,6 +80,52 @@ Four information pillars feed the analysis:
 - 任何写入 positions.md / decisions/ / reports/ 的数字 → 同上
 - 计算仓位占比 / 浮盈 / 总市值 → 显式列出每个分子分母
 
+## 🎭 Playwright 强制 Fallback(Yahoo stale 必抢实时)
+
+**触发**(命中任一立即 Playwright,不要"warning 后继续用 stale"):
+1. **时点矛盾**:Yahoo `regularMarketTime` 转 BJT 后**比当前 `Bash date` 落后 >15 分钟** 且 `marketState=REGULAR`
+2. **盘后未刷收盘**:BJT >15:15 但 Yahoo 仍返回 `marketState=REGULAR` 或盘中价
+3. **跨越市场分界 stale**:午休前→下午盘、下午盘→收盘 跨越后 Yahoo 没更新
+4. **Volume 异常低**:成交量明显小于历史日均(说明只截到半天数据)
+5. **用户明说"开盘了"/"收盘了"** 但 Yahoo 数据时点对不上
+6. **任何 MCP 工具返回空/错/限流** — 直接 Playwright,不要"等会再试"
+
+### A 股实时数据源(优先东方财富)
+1. **东方财富**(首选):
+   - 沪市:`https://quote.eastmoney.com/sh{code}.html`(如 sh600378)
+   - 深市:`https://quote.eastmoney.com/sz{code}.html`(如 sz000001)
+   - **抓 `<title>` 标签直接拿到"最新价 涨跌(涨幅%)"** + 表格抓五档/高低/量比/PE
+2. **新浪财经**:`https://finance.sina.com.cn/realstock/company/sh{code}/nc.shtml`
+3. **腾讯财经**:`https://gu.qq.com/sh{code}`
+
+### 港股 / 美股 / 商品实时数据源
+- 港股:东方财富 `https://quote.eastmoney.com/hk/{5位代码}.html`
+- 美股:东方财富 `https://quote.eastmoney.com/us/{TICKER}.html` 或 Google Finance
+- 黄金人民币:上海金交所 `https://www.sge.com.cn/`
+- 美国宏观:FRED 失败 → `https://fred.stlouisfed.org/series/{ID}`
+
+### 🔴 用完必关闭浏览器(资源管理硬规则)
+- **每个 Playwright 任务结束 → 立即调用 `mcp__playwright__browser_close`**
+- 一个对话最多保持 **1 个 tab 活跃**,多个查询用完一个关一个再开下一个
+- 用户不会问"为什么 Chrome 没关",但残留 Chrome 进程占内存 → 必须自觉关
+- **反模式**:
+  - ❌ 拉完数据继续聊别的,不关浏览器 — 残留进程
+  - ❌ 同时开 5 个 tab 拉 5 只股票 — 串行 + close,不要并行 tab
+  - ❌ "用户可能还要看",留着浏览器 — 不要预判,要看再开
+
+### 反模式(严禁)
+- ❌ "Yahoo 数据时点不对,我先按上午盘数据给建议" — 实时决策必须实时数据
+- ❌ "我大约 30 分钟后再拉一次" — 用户在等当下决策,不能拖
+- ❌ 警告"数据可能 stale"但仍基于 stale 数据下结论 — 警告不等于免责
+- ❌ Playwright 拉完数据忘了 `browser_close` — 浪费用户机器资源
+
+### 正确做法
+- ✅ 检测到 stale → 立即 `browser_navigate` 到东财 → `browser_evaluate` 抓 DOM → 标"东方财富 BJT XX:XX 实测" → **`browser_close`** → 给建议
+- ✅ Playwright 也失败 → 明确告诉用户"两个源都拿不到实时,建议用券商 APP 自己看"
+
+### Why
+2026-05-13 13:07 案例:用户说"下午开盘了",Yahoo 返回 `regularMarketTime` 对应 BJT 11:43 午休前快照(stale 84 分钟),但 marketState=REGULAR。我若用此数据回答"昊华是否撤单"会给错决策建议。Playwright 抓东财页面 title 直接拿到 "昊华科技 33.37 0.07(0.21%)"实时价 + 五档盘口,决策才有依据。
+
 ## 💰 P&L 术语严格区分(防止"累计 vs 当日"混淆)
 
 **触发**:任何写浮盈/盈亏/贡献的语境。
