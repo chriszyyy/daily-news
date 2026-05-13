@@ -17,11 +17,15 @@ description: 启动独立验证 subagent 交叉验证 session 中的关键数据
 
 ## 验证维度
 
-1. **价格/估值准确性** — Yahoo Finance 重新拉取
-2. **财报数据一致性** — Yahoo `get_financial_statement` 重查
+1. **价格/估值准确性** — Yahoo Finance 重新拉取 + **东方财富 Playwright 交叉验证**
+2. **财报数据一致性** — Yahoo `get_financial_statement` 重查 + 东财 `data.eastmoney.com/zycwzb/{代码}.html` 交叉
 3. **新闻事实真实性** — Exa 二次搜索（≥2 个独立来源）
 4. **供应链关系可信度** — Exa 验证客户/供应商关系
 5. **数据时效性** — 检查时间戳，>7 天标"可能过时"
+6. **🎭 Yahoo vs Playwright 价格交叉**(关键持仓 / 信号入库前必跑) — 详见 [tool-fallback skill](../tool-fallback/SKILL.md)
+   - 两源差异 <0.5% → ✓ 已验证
+   - 差异 0.5-2% → ⚠ 存疑(可能 Yahoo 延迟)
+   - 差异 >2% → ✗ 错误,以东财为准
 
 ## 评级体系
 
@@ -49,9 +53,11 @@ description: 启动独立验证 subagent 交叉验证 session 中的关键数据
 
 验证方法：
 1. 用 Yahoo Finance get_stock_info 重新拉取每个 ticker 的当前价格，对比报告数字
-2. 用 Yahoo Finance get_financial_statement（quarterly_income_stmt）验证财报数字
-3. 用 Exa 搜索验证每个事实声明（至少找到 2 个独立来源才标 ✓）
-4. 检查所有数据时间戳，标记 >7 天为"可能过时"
+2. **持仓股 + 当日信号标的**:用 Playwright `quote.eastmoney.com/sh{code}.html` 二次抓 title 实测,与 Yahoo 对比
+3. 用 Yahoo Finance get_financial_statement（quarterly_income_stmt）验证财报数字
+4. 用 Exa 搜索验证每个事实声明（至少找到 2 个独立来源才标 ✓）
+5. 检查所有数据时间戳，标记 >7 天为"可能过时"
+6. **🔴 Playwright 用完立即 `browser_close`** — 不留残留 tab
 
 输出格式：
 ## 数据验证报告

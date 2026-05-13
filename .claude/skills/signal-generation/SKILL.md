@@ -21,6 +21,8 @@ description: 生成单条交易信号的完整 pipeline——技术面 + 仓位 
 
 **数据**:Yahoo Finance `get_historical_stock_prices` period=6mo;A股用 `python tools/technical.py`;美股可用 Alpha Vantage 直接拉。
 
+**🎭 Stale 守卫**:Yahoo `regularMarketTime` 转 BJT 落后当前 >15min / 跨午休 / >15:15 仍 REGULAR → **立即调 [tool-fallback skill](../tool-fallback/SKILL.md) Playwright 东财实测现价**,严禁用 stale 价做 Gate 1 判定。Playwright 用完必 `browser_close`。
+
 **必算指标**:
 
 | 指标 | 解读 |

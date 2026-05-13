@@ -58,6 +58,52 @@ Level 4: 标 ⚠️ 数据缺失 + 历史/缓存 + 报告警示
 | 连续 3 次 timeout | ✅ |
 | 返回空数据但应该有 | ✅ |
 | 数据明显过时(>3 天) | ✅ |
+| **Yahoo `regularMarketTime` 转 BJT 落后当前 >15 分钟 且 marketState=REGULAR** | ✅ **直接 Playwright,不重试** |
+| **BJT >15:15 但 Yahoo 仍返回 marketState=REGULAR** | ✅ **直接 Playwright** |
+| **跨午休/开盘/收盘分界后 Yahoo 数据未更新** | ✅ **直接 Playwright** |
+| **Volume 异常低于历史均值**(只截到半天数据) | ✅ |
+| **用户明说"开盘了"/"收盘了"但 Yahoo 数据时点对不上** | ✅ **直接 Playwright,不要"warning 后继续"** |
+
+## 🎭 Stale 数据 → Playwright 实测 SOP
+
+**这是 stale-data 处理的唯一权威路径**。CLAUDE.md / 其他 skill 检测到 stale → 调本 skill。
+
+### 步骤
+1. **`Bash date`** 拿当前 BJT,计算 Yahoo `regularMarketTime` 与当前时差
+2. 时差 >15min 且 marketState=REGULAR → 进入 Playwright fallback
+3. **A 股**:`browser_navigate` → `https://quote.eastmoney.com/sh{code}.html`(沪)/`sz{code}.html`(深)
+4. **港股**:`https://quote.eastmoney.com/hk/{5位代码}.html`
+5. **美股**:`https://quote.eastmoney.com/us/{TICKER}.html`
+6. **抓 `<title>` 直接拿"最新价 涨跌(涨幅%)"** — 东财把核心信息塞进 title,最快路径
+7. `browser_evaluate` 抓 `<table>` DOM 获取五档 / 高低 / 量比 / PE
+8. 标注"东方财富 BJT XX:XX 实测"
+9. **🔴 立即 `mcp__playwright__browser_close`** — 不留残留 tab
+10. 输出数据给调用方
+
+### 东方财富快速提取模板
+
+```javascript
+// 抓五档/高低/量比 — 适用 quote.eastmoney.com 个股页
+() => {
+  const data = {};
+  document.querySelectorAll('table').forEach(t => {
+    const txt = t.innerText.trim();
+    if (txt.includes('卖') || txt.includes('买') || txt.includes('最高') || txt.includes('成交')) {
+      data['table_' + Object.keys(data).length] = txt.substring(0, 600);
+    }
+  });
+  return { title: document.title, ...data };
+}
+```
+
+### 🔴 用完必关闭浏览器(资源管理)
+- 每次 Playwright 任务结束 → **必须** `mcp__playwright__browser_close`
+- 一对话最多 1 个 tab 活跃,串行用完关下一个再开
+- 反模式:
+  - ❌ 拉完继续聊别的不关 — 残留 Chrome 进程占内存
+  - ❌ 同时开 5 个 tab 拉 5 只股 — **必须串行 + close**
+  - ❌ "用户可能还要看"留着 — 不要预判
+- 用户 2026-05-13 明确要求:"用完记得关闭 playwright chrome 窗口"
 
 ## 何时不要 fallback
 
