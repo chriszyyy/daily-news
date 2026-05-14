@@ -1,21 +1,42 @@
 ---
 name: signal-generation
-description: 生成单条交易信号的完整 pipeline——技术面 + 仓位 + Devil's advocate 一站完成。每条新信号、加仓决策、卖出决策必走。整合原 technical-entry-check + kelly-position-sizing + devil's advocate review。
+description: 新建仓信号的完整 5 道闸 pipeline——技术面 + Kelly + 可交易性 + 瓶颈 + 反方。任何写入决策日志的新建仓必走。已建仓加减仓由 Router 转 signal-rebalance(轻量 3 Gate)。
 ---
 
 # Signal Generation Pipeline
 
-**唯一信号入库通道**。任何即将写入决策日志/positions.md 的信号必须走完此 4 步,一步不过 = 信号丢弃或降级。
+**新建仓信号入库通道**(5 Gate)。已建仓加减仓由 Router 自动转 [`signal-rebalance`](../signal-rebalance/SKILL.md)(3 Gate)。
 
 ## Contract
 
-- **Triggers**: 生成新信号 / 加减仓决策 / 卖出决策 / daily-briefing P3.x
+- **Triggers**: 新信号(标的不在 positions.md)/ price-trigger-watch 命中触发器 / daily-briefing P3.2
 - **Inputs**: 标的代码、当前价、初步逻辑(为什么看好)
-- **Outputs**: 完整信号行(技术面+目标-止损+赔率+Kelly+反方+信心+最终仓位)
-- **Calls**: `bottleneck-analysis`(验证瓶颈定价潜力)、`tool-fallback`(数据失败时)
-- **Called by**: `daily-briefing`、用户直接生成信号时
+- **Outputs**: 完整信号行(技术面+目标-止损+赔率+Kelly+可交易性+瓶颈+反方+信心+最终股数)
+- **Calls**: `signal-rebalance`(若已建仓)、`bottleneck-analysis`(Gate 3)、`tool-fallback`(数据失败时)
+- **Called by**: `daily-briefing`、`price-trigger-watch`、用户直接
 
-## 4 道闸(顺序执行,任一失败 → STOP)
+## ⚠️ Step 0: Router(必跑,决定走哪条 pipeline)
+
+**判定逻辑**:
+1. 读 `decisions/positions.md` 当前持仓表(短/中/长期 3 张表)
+2. 检查标的代码是否已在持仓中:
+
+| 状态 | 路由 |
+|---|---|
+| **不在持仓** = 新建仓 | 继续走本 skill 5 Gate(Gate 1+2+2.5+3+4) |
+| **已在持仓** = 加仓/减仓/止盈/止损 | **立即转 [`signal-rebalance` skill](../signal-rebalance/SKILL.md) 3 Gate**,本 skill 不继续 |
+
+**Router 输出**:
+```
+Router 判定: [新建仓 / 加仓 / 减仓 / 止盈 / 止损]
+- 标的: XXX
+- positions.md 查询结果: [无 / X 股 @¥Y 成本]
+- 走 pipeline: [signal-generation 5 Gate / signal-rebalance 3 Gate]
+```
+
+**Why Router**: 2026-05-12 太极止盈 200 股决策,只需"技术面 + 可交易性 + 反方",不需要重做 Kelly 和瓶颈(开仓时已验证)。强制走 5 Gate 浪费 ~20 分钟。
+
+## 5 道闸(顺序执行,任一失败 → STOP)
 
 ### Gate 1: 技术面 — 入场时点
 
@@ -85,6 +106,68 @@ Kelly f* = (p×b - q) / b   ; q=1-p
 
 **仓位下限**:**最小 ¥3,000**;Kelly 算出 < ¥3,000 → 不买。
 
+### Gate 2.5: 可交易性校验(A 股结构性约束,失败立即丢弃)
+
+**Why**: 2026-05-14 教训 — 大秦/盛和/复星走完 4-Gate 才发现"100 股 < ¥3K floor / 200 股 > 10% cap / 手续费稀释让 b<2.5x 不划算"。Gate 2.5 在 30 秒内拦截结构性不可买,避免空跑后两个 Gate(~30 分钟)。详见 `decisions/2026-05-14.md` 经验教训段。
+
+**输入**:Gate 2 算出的"建议仓位 ¥X" + 总资金 C(默认 ¥30K) + 现价 P + 目标价 T + 止损 S + 赔率 b
+
+**3 道校验(任一失败 → 信号丢弃,可降级为价格触发器入 watchlist)**:
+
+#### 校验 1: 100 股最小单位 vs 仓位区间
+A 股最小单位 = 100 股(1 手)。计算:
+- 100 股价值 = P × 100
+- 200 股价值 = P × 200
+- 10% cap = C × 0.10(默认 ¥3,000)
+- ¥3K floor 不变
+
+| 情况 | 判定 |
+|---|---|
+| 100 股 ≤ 10% cap **且** 100 股 ≥ ¥3K floor | ✅ 可买 100 股 |
+| 100 股 ≤ 10% cap **但** < ¥3K floor + 200 股 ≤ 10% cap + ≥¥3K floor | ✅ 可买 200 股 |
+| 100 股 > 10% cap | 🔴 **结构性不可买**(单股太贵)→ 转价格触发器,等回调到 ¥(0.10×C/100) 以下 |
+| 100 股 < ¥3K floor **且** 200 股 > 10% cap | 🔴 **结构性夹缝**(¥{C×0.10/200}-{C×0.10/100} 价位段)→ 转价格触发器或放弃 |
+
+**速查表(C=¥30K, cap=¥3,000)**:
+- 现价 ≥ ¥30 → 100 股 ≥ ¥3,000 ≤ ¥3,000 临界,严格 > ¥30 即不可买
+- 现价 ¥15-30 → 100 股 ¥1,500-3,000 < floor + 200 股 ¥3,000-6,000 > cap = **结构性夹缝**
+- 现价 ≤ ¥15 → 200 股 ≤ ¥3,000 ≤ cap = 可买 200 股
+- 现价 ≤ ¥10 → 300 股 ≤ ¥3,000,可买 300 股
+
+#### 校验 2: 手续费稀释后净赔率 b'
+
+**手续费模型(用户实际券商, 2026-05-14 校准)**:
+- 买入:佣金 max(¥5, 仓位×0.025%)
+- 卖出:佣金 max(¥5, 仓位×0.025%) + 印花税 仓位×0.05% + 过户费 仓位×0.001%
+- **小仓位往返(<¥4,000)≈ ¥10-11 固定** → 稀释率 = ¥11 / 仓位价值
+
+**净赔率公式**:
+```
+仓位价值 V = P × 股数
+费率 f = 11 / V                              ; 小仓位主导
+目标净涨幅 = (T - P) / P - 2×f               ; 双边费用
+止损净跌幅 = (P - S) / P + 2×f
+净赔率 b' = 目标净涨幅 / 止损净跌幅
+```
+
+**判定阈值**:
+- b' ≥ 2.0 → ✅ 通过
+- 1.5 ≤ b' < 2.0 → ⚠️ 可疑,需 Gate 4 反方明显弱才放行
+- b' < 1.5 → 🔴 **手续费稀释失败**,丢弃或转触发器等更好价位
+
+#### 校验 3: 现金池余量
+
+读 `decisions/positions.md` 头部现金余额。**所选股数 × P > 现金可用 × 0.7**(留 30% 缓冲) → 🔴 **资金不足**,降股数或丢弃。
+
+**Gate 2.5 输出格式**:
+```
+- 现价 ¥X / 100 股价值 ¥A / 200 股价值 ¥B / 10% cap ¥C / ¥3K floor
+- 可买股数: [100/200/300/不可买]
+- 净赔率 b' = X (vs 毛赔率 b = Y) / 手续费稀释 Z%
+- 现金校验: 用 ¥A,占现金池 N% [✅/🔴]
+- Gate 2.5 判定: [PASS / FAIL → 转价格触发器 ¥X 以下]
+```
+
 ### Gate 3: 瓶颈硬约束(覆盖 Kelly)
 
 **必调** `bottleneck-analysis` skill 完成 6 问评分 + 三维度扫描 + 瓶颈定价潜力评级(低/中/高)。
@@ -137,6 +220,11 @@ Kelly f* = (p×b - q) / b   ; q=1-p
 #### Gate 2 Kelly
 - 当前 / 目标 / 止损
 - 赔率 b / 胜率 p / Kelly f* / 半Kelly K%
+
+#### Gate 2.5 可交易性
+- 100/200/300 股价值 / 可买股数
+- 净赔率 b' / 手续费稀释 %
+- 判定: PASS / FAIL → 触发器 ¥X
 
 #### Gate 3 瓶颈硬约束
 - 瓶颈定价潜力: [低/中/高]
