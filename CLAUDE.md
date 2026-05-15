@@ -24,6 +24,7 @@
 | "深度研究 XX 公司" / 候选进入 watchlist | `fundamental-deepdive` |
 | Session 末尾验证数据 / 用户质疑数据 | `data-validation` |
 | 板块扫描 / 找便宜替代 / 拓展 watchlist | `discover-new-stocks` |
+| 全 A 股系统扫描 / "我感觉 discover 漏了什么"(⚠️ 备用,非默认) | `sector-scanner` |
 | 任何 MCP 工具失败 / 限流 / 超时 | `tool-fallback` |
 | **daily-briefing 末尾自检** | **`briefing-audit`** ⭐ |
 
@@ -86,7 +87,7 @@
 ```
 daily-news/
 ├── CLAUDE.md                    # 项目说明 + skill 索引(本文件)
-├── .claude/skills/              # 🎯 10 个 skill(流程 SSOT)
+├── .claude/skills/              # 🎯 11 个 skill(流程 SSOT)
 │   ├── daily-briefing/          # 主流程编排(17 步 + audit)
 │   ├── price-trigger-watch/     # ⭐ P3.0 触发器扫描(命中才下钻)
 │   ├── signal-generation/       # ⭐ 新建仓 5 道闸(Gate 1+2+2.5+3+4)
@@ -95,6 +96,7 @@ daily-news/
 │   ├── fundamental-deepdive/    # 6 维度基本面
 │   ├── data-validation/         # 数据验证
 │   ├── discover-new-stocks/     # 新标的发掘
+│   ├── sector-scanner/          # ⭐ 全 A 股系统扫描(L1+L2 Python+L3 Skill)
 │   ├── tool-fallback/           # 工具失败 SOP
 │   └── briefing-audit/          # ⭐ 末尾自检
 ├── knowledge/                   # 数据 SSOT(非流程)
@@ -113,8 +115,14 @@ daily-news/
 ├── tools/                       # Python 工具
 │   ├── technical.py             # MA/RSI/MACD/BB/ATR
 │   ├── kelly.py                 # Kelly 仓位
-│   └── save_prices.py           # 价格新鲜度
+│   ├── save_prices.py           # 价格新鲜度
+│   └── scanner/                 # ⭐ 全 A 股扫描器(sector-scanner skill)
+│       ├── fetch_eastmoney.py   # L1 抓取(AkShare)
+│       ├── score.py             # L2 4 维评分
+│       ├── ai_keywords.py       # 4 链关键词词典
+│       └── output/              # CSV 产物
 ├── data/prices/                 # 历史价格 JSON
+├── data/scanner/                # ⭐ 全 A 股快照 raw JSON
 └── sources.md                   # 跟踪源
 ```
 
