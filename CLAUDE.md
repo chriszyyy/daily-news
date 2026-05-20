@@ -51,6 +51,7 @@
 | 📊 **滞涨标签 4 维校验** | "滞涨/认知差"必报 52w 涨幅+区间分位/近20日/近5日/放量,任一阈值命中 → 取消标签 | [`signal-generation` SKILL](.claude/skills/signal-generation/SKILL.md) Gate 1 |
 | 🎯 **Gate 2.5 可交易性** | 100 股最小单位 + ¥3K floor + 10% cap + 手续费稀释,失败转触发器 | [`signal-generation` SKILL](.claude/skills/signal-generation/SKILL.md) Gate 2.5 |
 | 🚫 **创业板权限缺失** | 300xxx / 301xxx 不可交易,扫描必排除 | `decisions/positions.md` 关注清单段 |
+| ⚡ **成交确认后默认同步** | 用户报告"X 卖/买了 Y 股 @¥Z" → 立即默认更新 positions.md + decisions/YYYY-MM-DD.md + 总览/P&L,**绝不询问"要不要写入"**;数据同步是 routine 维护不是决策 | 用户 2026-05-19 明确要求 |
 
 ## News Categories(具体公司/ticker 在 knowledge/)
 

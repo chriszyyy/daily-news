@@ -151,3 +151,58 @@ browser_evaluate `() => document.body.innerText`
 ## 记录到决策日志
 
 每次 fallback 写入当日 `decisions/YYYY-MM-DD.md` 的"数据警示"区,方便复盘和优化。
+
+---
+
+## 🤖 子代理(subagent)调用 SOP — 必读
+
+### 核心问题
+
+**子代理不继承**:
+- ❌ `.claude/skills/` 任何 skill(包括本 skill)
+- ❌ CLAUDE.md
+- ❌ memory/MEMORY.md(包括 feedback_exa_rate_limit / feedback_tool_fallback_required)
+- ❌ tool-fallback SOP / 重试机制 / Playwright 兜底意识
+
+**只部分继承**:
+- ⚠️ MCP 工具 — 看子代理类型;`general-purpose` 理论上有但**实际经常缺**(典型:yfinance 不可用 → 自己摸索 fallback 但不 SOP 化)
+
+**典型表现**(用户 2026-05-18 观察):
+- Exa 限流 → 子代理"接受缺失,标⚠为估算",不重试不 Playwright
+- yfinance 缺 → 子代理凭直觉用东财 push2,但不会按 SOP 用 Playwright
+- 任何失败 → 直接降级返回部分数据,**不通知主 session**
+
+### 🔴 主 Claude 启动子代理的 3 条铁律
+
+1. **prompt 头部必注入 SOP 摘要**(2-3 句,不要全文)
+2. **关键数据(价格/业绩/事实)优先主 session 实测**,子代理只做汇总/分析
+3. **子代理返回如有 ⚠估算/未实测/限流字样 → 主 session 立即补测**,不能直接采用
+
+### SOP 摘要模板(粘贴到 prompt 头部)
+
+```
+**工具失败 SOP**(必遵守):
+- 任何 MCP 工具失败/限流/超时 → 等 60s 重试 1 次 → 仍失败 immediately Playwright fallback
+- Exa 限流 → Playwright navigate 到中文源(quote.eastmoney.com / finance.sina.com.cn / cninfo.com.cn)
+- Yahoo 不可用 → 东财 push2 API 或 Playwright quote.eastmoney.com
+- Playwright 用完必 browser_close,一对话最多 1 个 tab
+- 任何数据点不允许标"⚠估算"或"未实测"跳过 — 必须用 fallback 取真值
+- stale 数据(regularMarketTime >15min 落后)同样必 Playwright,不接受
+```
+
+### 反模式(主 session 严禁)
+
+- ❌ 启动子代理只说"用 mcp__exa__web_search_exa 查 XX",不说限流怎么办
+- ❌ 启动子代理委托查实时价格 — 价格是事实查询,主 session 自己拉
+- ❌ 子代理返回 "⚠估算" 直接写入决策日志 — 必须补测后再写
+- ❌ 看到 "Skipping TaskCreate" / "数据未实测" 就忽略,假装没看见
+
+### 子代理类型选择
+
+| 类型 | 何时用 |
+|---|---|
+| `Explore` | 纯代码搜索(grep / glob / read),只读 |
+| `general-purpose` | 多步研究 + 工具组合,但**必须注入 SOP** |
+| `Plan` | 设计方案,不执行 |
+
+数据查询 + 信号 pipeline → 优先 `general-purpose` + **强制 SOP 注入**。
