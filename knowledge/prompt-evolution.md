@@ -19,6 +19,32 @@
 |---|------|------|------|--------|------|
 | (无) | | | | | |
 
+## 已完成
+
+| # | 完成日期 | 类型 | 描述 | 落地位置 |
+|---|------|------|------|----------|
+| 1 | 2026-05-22 | daily-briefing 规则 #10 | P1-P3.6 禁用 AskUserQuestion | `daily-briefing/SKILL.md` §强制执行规则 |
+| 2 | 2026-05-22 | signal-rebalance | 输出末尾"挂单状态"checkbox | `signal-rebalance/SKILL.md` §挂单状态 |
+| 3 | 2026-05-22 | price-trigger-watch | 同时扫关注清单 + 持仓表两类触发器 | `price-trigger-watch/SKILL.md` §强制规则 #6 |
+| 4 | 2026-05-22 | daily-briefing 规则 #11 | 跨午休/跨收盘 follow-up 必先重拉 | `daily-briefing/SKILL.md` §强制执行规则 |
+| 5 | 2026-05-22 | report 模板 | 增加"催化剂预案"段 | `daily-briefing/SKILL.md` §Report 模板 |
+| 6 | 2026-05-22 | signal-rebalance | 全平时必写"操作复盘段"模板 | `signal-rebalance/SKILL.md` §全平复盘模板 |
+| 7 | 2026-05-22 | signal-rebalance 规则 #8 | 卖出前 3 问 self-check(信号/持有理由/类比差异)防心态延展 | `signal-rebalance/SKILL.md` §卖出前 3 问 |
+| 8 | 2026-05-22 | signal-rebalance 规则 #9 | 挂单概率评估(历史 dayHigh 触发频次)拒绝 ATH 死价单 | `signal-rebalance/SKILL.md` §挂单概率评估 |
+| 9 | 2026-05-22 | signal-rebalance 规则 #8 Q1 | 强卖出信号定义,弱信号(浮盈/有空/类比)不构成卖 | `signal-rebalance/SKILL.md` §卖出前 3 问 Q1 |
+| 10 | 2026-05-22 | daily-briefing 规则 #12 | "今天建议"必出全持仓+全关注清单扫描表(4 块结构) | `daily-briefing/SKILL.md` §强制执行规则 #12 |
+
+## 已完成
+
+| # | 完成日期 | 类型 | 描述 | 落地位置 |
+|---|------|------|------|----------|
+| 1 | 2026-05-22 | daily-briefing 规则 #10 | P1-P3.6 禁用 AskUserQuestion | `daily-briefing/SKILL.md` §强制执行规则 |
+| 2 | 2026-05-22 | signal-rebalance | 输出末尾"挂单状态"checkbox | `signal-rebalance/SKILL.md` §挂单状态 |
+| 3 | 2026-05-22 | price-trigger-watch | 同时扫关注清单 + 持仓表两类触发器 | `price-trigger-watch/SKILL.md` §强制规则 #6 |
+| 4 | 2026-05-22 | daily-briefing 规则 #11 | 跨午休/跨收盘 follow-up 必先重拉 | `daily-briefing/SKILL.md` §强制执行规则 |
+| 5 | 2026-05-22 | report 模板 | 增加"催化剂预案"段 | `daily-briefing/SKILL.md` §Report 模板 |
+| 6 | 2026-05-22 | signal-rebalance | 全平时必写"操作复盘段"模板 | `signal-rebalance/SKILL.md` §全平复盘模板 |
+
 ---
 
 ### 📐 瓶颈资产投资框架（待集成到 CLAUDE.md）
