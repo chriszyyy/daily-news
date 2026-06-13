@@ -1,0 +1,9 @@
+data/state.db
+data/state.db-*
+config.json
+output/
+__pycache__/
+*.log
+
+run_scheduler.bat
+chipscanner_task.xml

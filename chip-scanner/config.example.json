@@ -1,0 +1,6 @@
+{
+  "_说明": "复制本文件为 config.json 并填入你的推送密钥即可启用手机推送。任一渠道留空则跳过。",
+  "pushdeer_key": "",
+  "serverchan_key": "",
+  "wecom_webhook": ""
+}
