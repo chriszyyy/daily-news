@@ -35,9 +35,31 @@ UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
 ]
 
-KLINE_DAYS = 250        # 取近 250 交易日构建筹码 (保留高位套牢筹码)
+KLINE_DAYS = 120        # 取近 120 交易日构建筹码 (聚焦近期密集峰; 250日会稀释)
 GRID = 1500             # 价格网格精细度
 DECAY = 1.0             # 换手衰减系数 (1.0 = 标准)
+DOM_HALF_FRAC = 0.06    # 主峰占比统计带宽: 主峰 ±6% 价格内的筹码占比
+SHARP_HALF_FRAC = 0.02  # 尖锐度统计带宽: 主峰 ±2% 价格内的筹码占比 (越高越尖)
+# 单峰判据 (次峰检测) 参数
+PEAK_SMOOTH_FRAC = 0.08  # 峰检测平滑窗口 (占网格比例)
+PEAK_GAP_FRAC = 0.10     # 峰间最小间距 (占网格比例, 合并相邻毛刺)
+
+
+def _second_peak_ratio(chips: np.ndarray) -> float:
+    """次峰/主峰 高度比 (0=纯单峰, 接近1=真双峰)。用于判定是否单峰。"""
+    n = len(chips)
+    w = max(int(n * PEAK_SMOOTH_FRAC), 5)
+    ys = np.convolve(chips, np.ones(w) / w, mode="same")
+    gap = max(int(n * PEAK_GAP_FRAC), 1)
+    idx = [i for i in range(1, n - 1) if ys[i] > ys[i - 1] and ys[i] >= ys[i + 1]]
+    idx.sort(key=lambda i: ys[i], reverse=True)
+    kept: list[int] = []
+    for i in idx:
+        if all(abs(i - j) >= gap for j in kept):
+            kept.append(i)
+    if len(kept) < 2 or ys[kept[0]] <= 0:
+        return 0.0
+    return float(ys[kept[1]] / ys[kept[0]])
 
 
 def _secid(code: str) -> str:
@@ -175,6 +197,21 @@ def compute_chips(kline: list[list[float]]) -> dict | None:
     # 主峰带宽相对现价 (70%筹码挤在 ±band70/2 内)
     band70 = (hi70 - lo70) / cur if cur > 0 else None
 
+    # 主峰占比: 主峰 ±DOM_HALF 价格带内的筹码占比 (越高越像单一尖峰)
+    peak_idx = int(np.argmax(chips))
+    peak_price = float(grid[peak_idx])
+    dom_half = peak_price * DOM_HALF_FRAC
+    dom_mask = (grid >= peak_price - dom_half) & (grid <= peak_price + dom_half)
+    dominance = float(chips[dom_mask].sum())
+    # 尖锐度: 主峰 ±SHARP_HALF 内筹码占比 (越高越尖)
+    sharp_half = peak_price * SHARP_HALF_FRAC
+    sharp_mask = (grid >= peak_price - sharp_half) & (grid <= peak_price + sharp_half)
+    sharpness = float(chips[sharp_mask].sum())
+    # 现价相对主峰 (带符号): >0 现价在主峰上方(突破/启动), <0 在下方(套牢压顶)
+    pos_vs_peak = (cur - peak_price) / peak_price if peak_price > 0 else None
+    # 次峰/主峰高度比 (单峰判据): 0=纯单峰, 接近1=真双峰
+    second_ratio = _second_peak_ratio(chips)
+
     return {
         "现价": round(cur, 2),
         "获利比例": round(profit_ratio, 4),
@@ -186,6 +223,11 @@ def compute_chips(kline: list[list[float]]) -> dict | None:
         "70成本高": round(hi70, 2),
         "SCR70": round(scr70, 4) if scr70 is not None else None,
         "带宽70": round(band70, 4) if band70 is not None else None,
+        "主峰价": round(peak_price, 2),
+        "主峰占比": round(dominance, 4),
+        "尖锐度": round(sharpness, 4),
+        "距主峰": round(pos_vs_peak, 4) if pos_vs_peak is not None else None,
+        "次峰比": round(second_ratio, 4),
     }
 
 

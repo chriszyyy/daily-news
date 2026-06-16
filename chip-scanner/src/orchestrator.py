@@ -31,12 +31,18 @@ import state_db as db
 # 新策略: 不限低位。用"横盘整理度"作密集单峰的廉价代理:
 #   60日涨跌幅绝对值越小 = 越横盘 = 筹码越收敛 = 越可能密集单峰。
 CONSOLIDATION_MAX = 30.0   # |60日涨跌幅| <= 此值才视为横盘候选 (%)
-MID_BUDGET = 300        # Mid+High 池总预算上限 → 筹码扫描永远 ≤ 此数, 不触发限流
+MID_BUDGET = 2000       # Mid+High 池上限 → 覆盖全部硬过滤后标的(~1974); 腾讯源稳, ~15分钟
 
-# ---- 筹码晋升门槛 (核心: 单峰密集, 用 70% 集中度; 不看套牢/低位) ----
-# SCR70 = 70% 筹码的价格带集中度, 越小越密集 (单峰)
-MID_SCR70 = 0.12        # Mid 池密集度门槛 (待数据校准)
-HIGH_SCR70 = 0.08       # High 池密集度门槛 (高度密集单峰)
+# ---- High 池选择: 单峰(次峰比) + 密集(带宽70) + 抛弃套牢盘 ----
+# 最终口径 (120日窗口, 经用户图形校准):
+#   1) 单峰: 次峰/主峰高度比 <= SECOND_MAX (排除北京银行/邮储这种双峰)
+#   2) 密集: 带宽70 <= BAND70_MAX (70%筹码价格带宽; 排除盛路这种…实测8.4%也算密集)
+#   3) 抛弃套牢盘: 现价相对主峰 >= POS_MIN (现价≈主峰或在上方)
+#   排序: 带宽70 升序 (越密集越靠前)
+SECOND_MAX = 0.50       # 次峰/主峰 <= 0.5 (单峰判据; 上港0.12/盛路0.00 过, 北京0.99 弃)
+BAND70_MAX = 0.09       # 带宽70 <= 9% (密集判据; 上港4.2%/盛路8.4% 均过)
+POS_MIN = -0.05         # 现价 >= 主峰*0.95 (抛弃套牢盘)
+HIGH_TOPN = 20          # High 池每日取 Top-N (送终审)
 
 # ---- 防抖 ----
 MID_MIN_STAY = 2        # Mid 最少停留天数 (内不降级)
@@ -133,58 +139,58 @@ def scan_chips_for(conn, rows, throttle: float) -> tuple[int, int]:
 
 
 def apply_chip_transitions(conn) -> tuple[int, int]:
-    """根据筹码密集度 (SCR70) 对 Mid/High 池晋升/降级。不看套牢/低位。"""
-    promoted = demoted = 0
+    """High 池选择: 单峰(次峰比) + 密集(带宽70) + 抛弃套牢盘 (120日窗口)。
+
+    候选 = Mid+High 中同时满足:
+      次峰比 <= SECOND_MAX (单峰), 带宽70 <= BAND70_MAX (密集),
+      现价相对主峰 >= POS_MIN (非套牢)。
+    排序 = 带宽70 升序 (越密集越靠前) 取 Top-N → High; 其余回 Mid。
+    """
     pool = list(db.get_by_level(conn, "Mid")) + list(db.get_by_level(conn, "High"))
+
+    qualified = []
     for row in pool:
-        scr70 = row["scr70"]
+        sec, band, pos = row["second_ratio"], row["band70"], row["near_peak"]
+        if not (sec is not None and band is not None and pos is not None):
+            continue
+        if sec <= SECOND_MAX and band <= BAND70_MAX and pos >= POS_MIN:
+            qualified.append((band, row))
+    qualified.sort(key=lambda x: x[0])   # 带宽升序, 越密集越前
+
+    high_codes = {r["code"] for _, r in qualified[:HIGH_TOPN]}
+
+    promoted = demoted = 0
+    for row in pool:
         lvl = row["level"]
-        has_chip = scr70 is not None
-
-        is_high = has_chip and scr70 < HIGH_SCR70   # 高度密集单峰
-        is_mid = has_chip and scr70 < MID_SCR70     # 较密集
-
-        if lvl == "Mid":
-            if is_high:
-                db.transition(conn, row["code"], "High",
-                              f"密集晋升 (SCR70={scr70:.3f})")
-                promoted += 1
-            elif not is_mid and db.days_in_level(row) >= MID_MIN_STAY:
-                db.transition(conn, row["code"], "Low",
-                              "密集度不足降级", cooldown_days=DEMOTE_COOLDOWN)
-                demoted += 1
-        elif lvl == "High":
-            if not is_high:
-                if is_mid:
-                    db.transition(conn, row["code"], "Mid", "不再满足 High 密集度")
-                else:
-                    db.transition(conn, row["code"], "Low",
-                                  "筹码发散降级", cooldown_days=DEMOTE_COOLDOWN)
+        should_be_high = row["code"] in high_codes
+        if should_be_high and lvl == "Mid":
+            db.transition(conn, row["code"], "High",
+                          f"单峰密集Top{HIGH_TOPN} (次峰比={row['second_ratio']:.2f}, "
+                          f"带宽70={row['band70']:.1%})")
+            promoted += 1
+        elif not should_be_high and lvl == "High":
+            if db.days_in_level(row) >= MID_MIN_STAY:
+                db.transition(conn, row["code"], "Mid", "跌出单峰密集 Top-N")
                 demoted += 1
     return promoted, demoted
 
 
 def export_high(conn) -> tuple[str, list[dict]]:
-    """导出 High 池 + 形态终审 verdict。返回 (csv路径, 记录列表)。"""
-    import morphology
+    """导出 High 池 (单峰+密集 Top-N)。按带宽70 升序 (越密集越前)。"""
     rows = db.get_by_level(conn, "High")
     recs = []
     for r in rows:
-        morph = morphology.analyze(r["code"]) or {}
         recs.append({
             "code": r["code"], "name": r["name"], "price": r["price"],
-            "平均成本": r["avg_cost"], "PE": r["pe_ttm"],
-            "SCR70": r["scr70"], "带宽70": r["band70"], "SCR90": r["scr"],
-            "获利比例": r["profit_ratio"],
+            "主峰价": r["avg_cost"], "PE": r["pe_ttm"],
+            "次峰比": r["second_ratio"], "带宽70": r["band70"],
+            "尖锐度": r["sharpness"], "主峰占比": r["dominance"],
+            "距主峰": r["near_peak"],
             "90成本低": r["cost_low90"], "90成本高": r["cost_high90"],
-            "verdict": morph.get("verdict", "?"),
-            "峰数": morph.get("n_peaks"),
-            "主峰占比": morph.get("主峰占比"),
             "industry": r["industry"], "chip_date": r["chip_date"],
         })
-    # 排序: PASS > WEAK > FAIL, 同档按 SCR70 升序 (最密集优先)
-    order = {"PASS": 0, "WEAK": 1, "FAIL": 2, "?": 3}
-    recs.sort(key=lambda x: (order.get(x["verdict"], 9), x["SCR70"] or 9))
+    # 带宽70 升序 (越密集越靠前)
+    recs.sort(key=lambda x: (x["带宽70"] if x["带宽70"] is not None else 9))
     df = pd.DataFrame(recs) if recs else pd.DataFrame()
     ts = datetime.now().strftime("%Y%m%d")
     path = os.path.join(OUTPUT_DIR, f"high_pool_{ts}.csv")
@@ -220,25 +226,39 @@ def run(universe: str | None = None, throttle: float = 0.8,
 
     path, recs = export_high(conn)
     high_n = db.level_counts(conn).get("High", 0)
-    print(f"[output] High 池 {high_n} 只 → {path}")
+    print(f"[output] High 池 {high_n} 只 (单峰+密集, 带宽升序) → {path}")
 
-    # 形态终审摘要
-    passed = [r for r in recs if r["verdict"] in ("PASS", "WEAK")]
-    for r in recs:
-        print(f"  [{r['verdict']:<4}] {r['code']} {r['name']} "
-              f"SCR70={r['SCR70']:.3f} 带宽70={r['带宽70']:.1%} "
-              f"PE={r['PE']:.1f} 峰数={r['峰数']} 主峰占比={r.get('主峰占比')}")
+    # 基本面增强: 补业绩(净利/营收同比, ROE) + 量价(量比/成交额)
+    try:
+        import enrich
+        recs = enrich.enrich(recs)
+        # 增强后重写 CSV (含业绩量价列)
+        import pandas as _pd
+        _pd.DataFrame(recs).to_csv(path, index=False, encoding="utf-8-sig")
+        print("[enrich] 已补充业绩 + 量价")
+    except Exception as e:  # noqa: BLE001
+        print(f"[enrich] 增强失败 (不影响主流程): {e}")
+
+    # High 池即为入选 (单峰 + 密集 + 非套牢)
+    passed = recs
+    for i, r in enumerate(recs, 1):
+        print(f"  {i:>2}. {r['code']} {r['name']} "
+              f"次峰比={r['次峰比']:.2f} 带宽70={r['带宽70']:.1%} "
+              f"距主峰={r['距主峰']:+.1%} PE={r['PE']:.1f} "
+              f"净利同比={r.get('净利润同比')}% 量比={r.get('量比')}")
 
     if notify_enabled:
         try:
             import notify
             import plot_chips
+            import overview
             charts = {}
-            for r in passed:                       # 仅对入选标的画图
+            for r in passed[:HIGH_TOPN]:           # 对入选标的画图
                 cp = plot_chips.plot_one(r["code"], r["name"])
                 if cp:
                     charts[r["code"]] = cp
-            notify.send_daily(recs, passed, charts)
+            ov = overview.build_overview(passed[:HIGH_TOPN])   # 拼总览图
+            notify.send_daily(recs, passed, charts, overview_path=ov)
         except Exception as e:  # noqa: BLE001
             print(f"[notify] 通知失败 (不影响主流程): {e}")
 

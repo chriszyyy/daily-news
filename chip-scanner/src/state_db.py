@@ -57,6 +57,10 @@ def init_db(conn: sqlite3.Connection) -> None:
             scr             REAL,
             scr70           REAL,
             band70          REAL,
+            dominance       REAL,
+            sharpness       REAL,
+            near_peak       REAL,
+            second_ratio    REAL,
             profit_ratio    REAL,
             avg_cost        REAL,
             cost_low90      REAL,
@@ -153,11 +157,13 @@ def get_by_level(conn: sqlite3.Connection, level: str) -> list[sqlite3.Row]:
 
 def update_chips(conn: sqlite3.Connection, code: str, chip: dict) -> None:
     conn.execute(
-        """UPDATE stocks SET scr=?, scr70=?, band70=?, profit_ratio=?,
-           avg_cost=?, cost_low90=?, cost_high90=?, chip_date=?, price=?,
-           updated_at=? WHERE code=?""",
+        """UPDATE stocks SET scr=?, scr70=?, band70=?, dominance=?,
+           sharpness=?, near_peak=?, second_ratio=?, profit_ratio=?, avg_cost=?,
+           cost_low90=?, cost_high90=?, chip_date=?, price=?, updated_at=?
+           WHERE code=?""",
         (chip.get("SCR"), chip.get("SCR70"), chip.get("带宽70"),
-         chip.get("获利比例"), chip.get("平均成本"),
+         chip.get("主峰占比"), chip.get("尖锐度"), chip.get("距主峰"),
+         chip.get("次峰比"), chip.get("获利比例"), chip.get("平均成本"),
          chip.get("90成本低"), chip.get("90成本高"), chip.get("chip_date"),
          chip.get("现价"), _now(), code))
     conn.commit()

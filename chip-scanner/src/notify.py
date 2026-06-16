@@ -42,22 +42,34 @@ def _load_config() -> dict:
 def _build_text(recs: list[dict], passed: list[dict]) -> tuple[str, str]:
     """返回 (标题, markdown 正文)。"""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-    n_pass = sum(1 for r in passed if r["verdict"] == "PASS")
-    n_weak = sum(1 for r in passed if r["verdict"] == "WEAK")
-    title = f"筹码扫描 {datetime.now():%m-%d}: {n_pass}个完美单峰 / {n_weak}个接近"
+    title = f"筹码扫描 {datetime.now():%m-%d}: 单峰密集 Top{len(passed)}"
 
-    lines = [f"## 筹码扫描结果 {ts}", ""]
+    lines = [f"## 筹码扫描结果 {ts}", "",
+             "盈利 + 单峰密集 (120日窗口, 按带宽升序)", ""]
     if not passed:
-        lines.append("今日**无**完美/接近的低位单峰套牢盘。")
+        lines.append("今日**无**符合条件的单峰密集标的。")
     else:
-        lines.append("### 入选标的 (PASS=完美单峰, WEAK=主导单峰)")
-        for r in passed:
+        lines.append("### 入选标的")
+        lines.append("> 格式: 形态(带宽/次峰比/距主峰) · 基本面(净利同比/营收同比/ROE) · 量价(量比/成交额)")
+        lines.append("")
+        for i, r in enumerate(passed, 1):
+            def _f(v, suf="%"):
+                return f"{v:+.0f}{suf}" if isinstance(v, (int, float)) else "—"
+            np_yoy = _f(r.get("净利润同比"))
+            rev_yoy = _f(r.get("营收同比"))
+            roe = (f"{r['ROE']:.1f}%" if isinstance(r.get("ROE"), (int, float))
+                   else "—")
+            vr = (f"{r['量比']:.1f}" if isinstance(r.get("量比"), (int, float))
+                  else "—")
+            amt = (f"{r['成交额亿']:.1f}亿"
+                   if isinstance(r.get("成交额亿"), (int, float)) else "—")
             lines.append(
-                f"- **[{r['verdict']}] {r['code']} {r['name']}** "
-                f"现价{r['price']:.2f} | SCR={r['SCR']:.3f} | "
-                f"套牢{r['套牢比例']:.0%} | 峰数{r['峰数']} | "
-                f"主峰占比{r.get('主峰占比')} | {r.get('industry','')}")
-    lines += ["", f"_High 池共 {len(recs)} 只, 完整见 high_pool CSV_"]
+                f"**{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
+                f"现价{r['price']:.2f} PE{r['PE']:.0f}\n"
+                f"　形态: 带宽{r['带宽70']:.0%}/次峰{r['次峰比']:.2f}/距峰{r['距主峰']:+.0%} "
+                f"· 业绩: 净利{np_yoy}/营收{rev_yoy}/ROE{roe} "
+                f"· 量价: 量比{vr}/额{amt}")
+    lines += ["", f"_完整见 high_pool CSV_"]
     return title, "\n".join(lines)
 
 
@@ -113,10 +125,23 @@ def _push_wecom_image(webhook: str, img_path: str) -> bool:
 
 
 def send_daily(recs: list[dict], passed: list[dict],
-               charts: dict[str, str] | None = None) -> None:
-    """发送每日通知。recs=全部High, passed=PASS/WEAK, charts={code:png}。"""
+               charts: dict[str, str] | None = None,
+               overview_path: str | None = None) -> None:
+    """发送每日通知。recs=全部High, passed=入选, overview_path=总览图本地路径。"""
     cfg = _load_config()
     title, body = _build_text(recs, passed)
+
+    # 总览图: push 到公开仓库, 取 jsDelivr CDN URL, 嵌入 Markdown
+    img_url = None
+    if overview_path:
+        try:
+            import git_image
+            img_url = git_image.upload_image(overview_path)
+        except Exception as e:  # noqa: BLE001
+            print(f"[notify] 图床上传失败: {e}")
+    if img_url:
+        body = f"![单峰密集总览]({img_url})\n\n{body}"
+        print(f"[notify] 总览图已嵌入: {img_url}")
 
     # 本地日志兜底 (始终写)
     log_path = _local_log(title, body)

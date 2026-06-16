@@ -40,8 +40,8 @@ for _f in ("Microsoft YaHei", "SimHei", "DejaVu Sans"):
 plt.rcParams["axes.unicode_minus"] = False
 
 
-def plot_one(code: str, name: str = "") -> str | None:
-    kline = chip_calc.fetch_kline(code)
+def plot_one(code: str, name: str = "", win: int = None) -> str | None:
+    kline = chip_calc.fetch_kline(code, lmt=win) if win else chip_calc.fetch_kline(code)
     dist = chip_calc.compute_distribution(kline) if kline else None
     if dist is None:
         print(f"[plot] {code} 无数据")
@@ -60,12 +60,13 @@ def plot_one(code: str, name: str = "") -> str | None:
                label=f"现价 {cur:.2f}")
     ax.axhline(avg, color="orange", lw=1.2, ls="--",
                label=f"平均成本 {avg:.2f}")
-    ax.axhline(m["90成本低"], color="gray", lw=0.8, ls=":")
-    ax.axhline(m["90成本高"], color="gray", lw=0.8, ls=":")
+    ax.axhline(m["70成本低"], color="green", lw=0.9, ls=":",
+               label=f"70%带 {m['70成本低']:.2f}~{m['70成本高']:.2f}")
+    ax.axhline(m["70成本高"], color="green", lw=0.9, ls=":")
 
     title = (f"{code} {name}\n"
-             f"SCR={m['SCR']:.3f}  套牢={1 - m['获利比例']:.0%}  "
-             f"获利={m['获利比例']:.0%}")
+             f"主峰占比={m['主峰占比']:.0%}  带宽70={m['带宽70']:.1%}  "
+             f"SCR70={m['SCR70']:.3f}")
     ax.set_title(title, fontsize=11)
     ax.set_xlabel("筹码量 (占比)")
     ax.set_ylabel("价格")
