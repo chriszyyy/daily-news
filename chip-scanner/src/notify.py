@@ -50,7 +50,7 @@ def _build_text(recs: list[dict], passed: list[dict]) -> tuple[str, str]:
         lines.append("今日**无**符合条件的单峰密集标的。")
     else:
         lines.append("### 入选标的")
-        lines.append("> 格式: 形态(带宽/次峰比/距主峰) · 基本面(净利同比/营收同比/ROE) · 量价(量比/成交额)")
+        lines.append("> 格式: 形态(带宽/次峰比/距主峰) · 资金(主力/超大单/大单) · 基本面 · 量价")
         lines.append("")
         for i, r in enumerate(passed, 1):
             def _f(v, suf="%"):
@@ -63,10 +63,20 @@ def _build_text(recs: list[dict], passed: list[dict]) -> tuple[str, str]:
                   else "—")
             amt = (f"{r['成交额亿']:.1f}亿"
                    if isinstance(r.get("成交额亿"), (int, float)) else "—")
+            main = (f"{r['主力净流入亿']:+.2f}亿/{r.get('主力净占比'):+.1f}%"
+                    if isinstance(r.get("主力净流入亿"), (int, float))
+                    and isinstance(r.get("主力净占比"), (int, float)) else "—")
+            super_flow = (f"{r['超大单净流入亿']:+.2f}亿"
+                          if isinstance(r.get("超大单净流入亿"), (int, float))
+                          else "—")
+            large = (f"{r['大单净流入亿']:+.2f}亿"
+                     if isinstance(r.get("大单净流入亿"), (int, float)) else "—")
+            fund_mark = "✓" if r.get("资金确认") == "是" else "—"
             lines.append(
                 f"**{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
                 f"现价{r['price']:.2f} PE{r['PE']:.0f}\n"
                 f"　形态: 带宽{r['带宽70']:.0%}/次峰{r['次峰比']:.2f}/距峰{r['距主峰']:+.0%} "
+                f"· 资金{fund_mark}: 主力{main}/超大{super_flow}/大单{large} "
                 f"· 业绩: 净利{np_yoy}/营收{rev_yoy}/ROE{roe} "
                 f"· 量价: 量比{vr}/额{amt}")
     lines += ["", f"_完整见 high_pool CSV_"]

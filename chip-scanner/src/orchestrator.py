@@ -70,6 +70,12 @@ def refresh_snapshot(conn, uni_path: str) -> tuple[int, int]:
         "turnover_ratio": r.get("成交额占流通比%"),
         "health": r.get("健康度"), "industry": r.get("industry"),
         "pe_ttm": r.get("pe_ttm"),
+        "main_net_inflow": r.get("main_net_inflow"),
+        "main_net_pct": r.get("main_net_pct"),
+        "super_net_inflow": r.get("super_net_inflow"),
+        "super_net_pct": r.get("super_net_pct"),
+        "large_net_inflow": r.get("large_net_inflow"),
+        "large_net_pct": r.get("large_net_pct"),
     } for _, r in df.iterrows()]
     n = db.upsert_snapshot(conn, rows)
     pruned = db.prune_absent(conn, set(df["code"]))
@@ -180,12 +186,26 @@ def export_high(conn) -> tuple[str, list[dict]]:
     rows = db.get_by_level(conn, "High")
     recs = []
     for r in rows:
+        fund_confirmed = (
+            (r["main_net_inflow"] or 0) > 0
+            and ((r["super_net_inflow"] or 0) > 0 or (r["large_net_inflow"] or 0) > 0)
+        )
         recs.append({
             "code": r["code"], "name": r["name"], "price": r["price"],
             "主峰价": r["avg_cost"], "PE": r["pe_ttm"],
             "次峰比": r["second_ratio"], "带宽70": r["band70"],
             "尖锐度": r["sharpness"], "主峰占比": r["dominance"],
             "距主峰": r["near_peak"],
+            "资金确认": "是" if fund_confirmed else "否",
+            "主力净流入亿": (round(r["main_net_inflow"] / 1e8, 2)
+                         if r["main_net_inflow"] is not None else None),
+            "主力净占比": r["main_net_pct"],
+            "超大单净流入亿": (round(r["super_net_inflow"] / 1e8, 2)
+                           if r["super_net_inflow"] is not None else None),
+            "超大单净占比": r["super_net_pct"],
+            "大单净流入亿": (round(r["large_net_inflow"] / 1e8, 2)
+                         if r["large_net_inflow"] is not None else None),
+            "大单净占比": r["large_net_pct"],
             "90成本低": r["cost_low90"], "90成本高": r["cost_high90"],
             "industry": r["industry"], "chip_date": r["chip_date"],
         })
@@ -245,6 +265,7 @@ def run(universe: str | None = None, throttle: float = 0.8,
         print(f"  {i:>2}. {r['code']} {r['name']} "
               f"次峰比={r['次峰比']:.2f} 带宽70={r['带宽70']:.1%} "
               f"距主峰={r['距主峰']:+.1%} PE={r['PE']:.1f} "
+              f"主力={r.get('主力净流入亿')}亿/{r.get('主力净占比')}% "
               f"净利同比={r.get('净利润同比')}% 量比={r.get('量比')}")
 
     if notify_enabled:

@@ -55,6 +55,12 @@ FIELD_MAP = {
     "f25": "change_ytd_pct",
     "f26": "list_date",        # 上市日 YYYYMMDD
     "f100": "industry",        # 所属行业
+    "f62": "main_net_inflow",   # 主力净流入(元)
+    "f184": "main_net_pct",     # 主力净占比 %
+    "f66": "super_net_inflow",  # 超大单净流入(元)
+    "f69": "super_net_pct",     # 超大单净占比 %
+    "f72": "large_net_inflow",  # 大单净流入(元)
+    "f75": "large_net_pct",     # 大单净占比 %
 }
 
 FIELD_PARAM = ",".join(FIELD_MAP.keys())

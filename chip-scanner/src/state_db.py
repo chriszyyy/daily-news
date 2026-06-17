@@ -53,6 +53,12 @@ def init_db(conn: sqlite3.Connection) -> None:
             health          TEXT,
             industry        TEXT,
             pe_ttm          REAL,    -- PE-TTM (剔除亏损用, <=0 为亏损)
+            main_net_inflow REAL,    -- 主力净流入(元)
+            main_net_pct    REAL,    -- 主力净占比 %
+            super_net_inflow REAL,   -- 超大单净流入(元)
+            super_net_pct   REAL,    -- 超大单净占比 %
+            large_net_inflow REAL,   -- 大单净流入(元)
+            large_net_pct   REAL,    -- 大单净占比 %
             -- 筹码字段 (仅 Mid/High 刷新)
             scr             REAL,
             scr70           REAL,
@@ -96,6 +102,14 @@ def init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_stocks_level ON stocks(level);
         """
     )
+    _ensure_columns(conn, "stocks", {
+        "main_net_inflow": "REAL",
+        "main_net_pct": "REAL",
+        "super_net_inflow": "REAL",
+        "super_net_pct": "REAL",
+        "large_net_inflow": "REAL",
+        "large_net_pct": "REAL",
+    })
     conn.commit()
 
 
@@ -105,6 +119,16 @@ def _now() -> str:
 
 def _today() -> str:
     return date.today().isoformat()
+
+
+def _ensure_columns(conn: sqlite3.Connection, table: str,
+                    columns: dict[str, str]) -> None:
+    existing = {
+        row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    for name, col_type in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
 
 
 def upsert_snapshot(conn: sqlite3.Connection, rows: list[dict]) -> int:
@@ -118,21 +142,31 @@ def upsert_snapshot(conn: sqlite3.Connection, rows: list[dict]) -> int:
             conn.execute(
                 """UPDATE stocks SET name=?, price=?, change_60d_pct=?,
                    turnover_yuan=?, float_mktcap=?, turnover_ratio=?,
-                   health=?, industry=?, pe_ttm=?, updated_at=? WHERE code=?""",
+                   health=?, industry=?, pe_ttm=?, main_net_inflow=?,
+                   main_net_pct=?, super_net_inflow=?, super_net_pct=?,
+                   large_net_inflow=?, large_net_pct=?, updated_at=? WHERE code=?""",
                 (r.get("name"), r.get("price"), r.get("change_60d_pct"),
                  r.get("turnover_yuan"), r.get("float_mktcap"),
                  r.get("turnover_ratio"), r.get("health"), r.get("industry"),
-                 r.get("pe_ttm"), _now(), code))
+                 r.get("pe_ttm"), r.get("main_net_inflow"),
+                 r.get("main_net_pct"), r.get("super_net_inflow"),
+                 r.get("super_net_pct"), r.get("large_net_inflow"),
+                 r.get("large_net_pct"), _now(), code))
         else:
             conn.execute(
                 """INSERT INTO stocks (code, name, level, level_since, price,
                    change_60d_pct, turnover_yuan, float_mktcap, turnover_ratio,
-                   health, industry, pe_ttm, updated_at)
-                   VALUES (?,?,'Low',?,?,?,?,?,?,?,?,?,?)""",
+                   health, industry, pe_ttm, main_net_inflow, main_net_pct,
+                   super_net_inflow, super_net_pct, large_net_inflow,
+                   large_net_pct, updated_at)
+                   VALUES (?,?,'Low',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (code, r.get("name"), _today(), r.get("price"),
                  r.get("change_60d_pct"), r.get("turnover_yuan"),
                  r.get("float_mktcap"), r.get("turnover_ratio"),
                  r.get("health"), r.get("industry"), r.get("pe_ttm"),
+                 r.get("main_net_inflow"), r.get("main_net_pct"),
+                 r.get("super_net_inflow"), r.get("super_net_pct"),
+                 r.get("large_net_inflow"), r.get("large_net_pct"),
                  _now()))
         n += 1
     conn.commit()

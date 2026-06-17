@@ -80,7 +80,9 @@ def fetch_kline_tx(code: str, lmt: int = KLINE_DAYS,
     today = date.today()
     start = today.replace(year=today.year - 2).isoformat()  # 回溯足够远, 由 lmt 截断
     end = "2050-12-31"
-    params = {"param": f"{sym},day,{start},{end},{lmt},"}
+    # 腾讯 day 接口在 lmt 较小时偶尔漏掉最新交易日; 多拉一段后本地截尾。
+    request_lmt = max(lmt + 30, 400)
+    params = {"param": f"{sym},day,{start},{end},{request_lmt},"}
     for attempt in range(max_retries):
         try:
             r = requests.get(TX_URL, params=params,
@@ -99,7 +101,7 @@ def fetch_kline_tx(code: str, lmt: int = KLINE_DAYS,
                 except (ValueError, TypeError):
                     tr = 0.0
                 out.append([float(p[2]), float(p[3]), float(p[4]), tr])
-            return out
+            return out[-lmt:]
         except Exception:  # noqa: BLE001
             time.sleep(0.5)
     return None
@@ -211,6 +213,14 @@ def compute_chips(kline: list[list[float]]) -> dict | None:
     pos_vs_peak = (cur - peak_price) / peak_price if peak_price > 0 else None
     # 次峰/主峰高度比 (单峰判据): 0=纯单峰, 接近1=真双峰
     second_ratio = _second_peak_ratio(chips)
+    # 放量比: 近5日均换手 / 前20日均换手 (>1.2 = 放量, 资金进场)
+    vol_ratio = None
+    if len(trs) >= 25:
+        recent = float(np.mean(trs[-5:]))
+        base = float(np.mean(trs[-25:-5]))
+        vol_ratio = round(recent / base, 3) if base > 0 else None
+    # 近5日涨幅 (突破动能): 现价 / 5日前收盘 - 1
+    mom5 = round((cur / closes[-6] - 1) * 100, 2) if len(closes) >= 6 and closes[-6] > 0 else None
 
     return {
         "现价": round(cur, 2),
@@ -228,6 +238,8 @@ def compute_chips(kline: list[list[float]]) -> dict | None:
         "尖锐度": round(sharpness, 4),
         "距主峰": round(pos_vs_peak, 4) if pos_vs_peak is not None else None,
         "次峰比": round(second_ratio, 4),
+        "放量比": vol_ratio,
+        "近5日涨幅": mom5,
     }
 
 

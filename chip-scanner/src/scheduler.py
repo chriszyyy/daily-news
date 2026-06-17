@@ -1,8 +1,8 @@
 """调度器 — 每日盘后自动运行筹码扫描漏斗 (APScheduler)。
 
 计划:
-  - 每个交易日 15:30  : 运行 orchestrator (Mid+High 筹码扫描 + 形态终审 + 通知)。
-  - 每周五      16:00  : 先刷新全市场 universe (基础过滤), 再运行 orchestrator。
+  - 每个交易日 16:15  : 运行 orchestrator (Mid+High 筹码扫描 + 形态终审 + 通知)。
+  - 每周五      16:20  : 先刷新全市场 universe (基础过滤), 再运行 orchestrator。
 
 交易日判定: 周一~周五且非节假日 (简易版仅排除周末; 节假日可后续接日历)。
 universe 刷新依赖东财 clist, 若被限流会自动沿用最近一次 universe CSV。
@@ -87,11 +87,11 @@ def main() -> None:
 
     try:
         sched = BlockingScheduler(timezone="Asia/Shanghai")
-        sched.add_job(daily_job, CronTrigger(day_of_week="mon-thu", hour=15,
-                                             minute=30), id="daily")
+        sched.add_job(daily_job, CronTrigger(day_of_week="mon-thu", hour=16,
+                                             minute=15), id="daily")
         sched.add_job(friday_job, CronTrigger(day_of_week="fri", hour=16,
-                                              minute=0), id="friday")
-        log.info("调度器启动: 周一~四 15:30 扫描; 周五 16:00 刷新+扫描")
+                                              minute=20), id="friday")
+        log.info("调度器启动: 周一~四 16:15 扫描; 周五 16:20 刷新+扫描")
         sched.start()
     except (KeyboardInterrupt, SystemExit):
         log.info("已停止")

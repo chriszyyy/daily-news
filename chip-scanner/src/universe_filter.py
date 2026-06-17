@@ -2,7 +2,8 @@
 
 复用仓库现有抓取器 tools/scanner/fetch_eastmoney.py (东财 push2, 节流+UA轮换+退避),
 字段含: price/turnover_yuan/turnover_rate_pct/volume_ratio/market_cap/
-float_market_cap/list_date/change_60d_pct/change_ytd_pct/pb/industry。
+float_market_cap/list_date/change_60d_pct/change_ytd_pct/pb/industry/
+main_net_inflow/main_net_pct/super_net_inflow/large_net_inflow。
 
 硬过滤 (剔除):
   1. 板块资格   — 排除科创(688/689)/创业(300/301)/北交所(4/8/9)
@@ -133,7 +134,9 @@ def main() -> None:
     cols = ["code", "name", "price", "change_pct", "change_60d_pct",
             "turnover_yuan", "float_market_cap", "turnover_rate_pct",
             "volume_ratio", "pe_ttm", "成交额占流通比%", "健康度", "高位标记",
-            "量比异动", "industry"]
+            "量比异动", "main_net_inflow", "main_net_pct",
+            "super_net_inflow", "super_net_pct", "large_net_inflow",
+            "large_net_pct", "industry"]
     cols = [c for c in cols if c in filtered.columns]
     filtered[cols].to_csv(out_path, index=False, encoding="utf-8-sig")
     print(f"\n[output] {len(filtered)} 只 → {out_path}")

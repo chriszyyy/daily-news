@@ -1,6 +1,6 @@
-"""High 池标的的基本面增强 — 补充业绩(净利润/营收同比)+ 量价(量比/成交额)。
+"""High 池标的的基本面增强 — 补充业绩(净利润/营收同比)+ 量价/资金流。
 
-- 量价: 从最新 universe CSV 取 (volume_ratio / turnover_yuan), 无额外请求。
+- 量价/资金流: 从最新 universe CSV 取, 无额外请求。
 - 业绩: 同花顺财务摘要最新一期 (净利润同比 / 营收同比 / ROE), 逐只补 (≤20只, 快)。
 """
 
@@ -21,7 +21,7 @@ def latest_universe() -> str:
 
 
 def load_volume_map() -> dict:
-    """code -> {量比, 成交额}。来自全市场快照, 无额外请求。"""
+    """code -> 量价/资金流字段。来自全市场快照, 无额外请求。"""
     path = latest_universe()
     if not path:
         return {}
@@ -33,6 +33,12 @@ def load_volume_map() -> dict:
             "量比": r.get("volume_ratio"),
             "成交额": r.get("turnover_yuan"),
             "换手率": r.get("turnover_rate_pct"),
+            "主力净流入": r.get("main_net_inflow"),
+            "主力净占比": r.get("main_net_pct"),
+            "超大单净流入": r.get("super_net_inflow"),
+            "超大单净占比": r.get("super_net_pct"),
+            "大单净流入": r.get("large_net_inflow"),
+            "大单净占比": r.get("large_net_pct"),
         }
     return out
 
@@ -73,6 +79,25 @@ def enrich(recs: list[dict]) -> list[dict]:
         v = vmap.get(code, {})
         r["量比"] = v.get("量比")
         r["成交额亿"] = round(v["成交额"] / 1e8, 2) if v.get("成交额") else None
+        r["主力净流入亿"] = (round(v["主力净流入"] / 1e8, 2)
+                       if v.get("主力净流入") is not None else r.get("主力净流入亿"))
+        r["主力净占比"] = v.get("主力净占比", r.get("主力净占比"))
+        r["超大单净流入亿"] = (round(v["超大单净流入"] / 1e8, 2)
+                         if v.get("超大单净流入") is not None
+                         else r.get("超大单净流入亿"))
+        r["超大单净占比"] = v.get("超大单净占比", r.get("超大单净占比"))
+        r["大单净流入亿"] = (round(v["大单净流入"] / 1e8, 2)
+                       if v.get("大单净流入") is not None else r.get("大单净流入亿"))
+        r["大单净占比"] = v.get("大单净占比", r.get("大单净占比"))
+        main_in = r.get("主力净流入亿")
+        super_in = r.get("超大单净流入亿")
+        large_in = r.get("大单净流入亿")
+        r["资金确认"] = (
+            "是" if isinstance(main_in, (int, float)) and main_in > 0
+            and ((isinstance(super_in, (int, float)) and super_in > 0)
+                 or (isinstance(large_in, (int, float)) and large_in > 0))
+            else "否"
+        )
         e = fetch_earnings(code)
         r["净利润同比"] = e.get("净利润同比")
         r["营收同比"] = e.get("营收同比")

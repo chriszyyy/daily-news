@@ -58,6 +58,7 @@ if __name__ == "__main__":
     import state_db as db
     import orchestrator as o
     conn = db.connect()
+    db.init_db(conn)
     _, recs = o.export_high(conn)
     p = build_overview(recs)
     print(f"总览图 -> {p}")
