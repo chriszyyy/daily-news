@@ -56,6 +56,14 @@ TREND_TURNOVER_FLOOR = 5e8       # 成交额 >= 5亿
 TREND_THEME_TURNOVER_FLOOR = 2e9 # 主题大票成交额 >= 20亿
 TREND_INDUSTRIES = ("半导体", "电子", "通信", "计算机", "光学", "元件")
 
+# ---- 推盘观察池: 主力/超大单推价格的盘中异动提示, 不作为买入信号 ----
+PUSH_TOPN = 20
+PUSH_SCAN_BUDGET = 180
+PUSH_TURNOVER_FLOOR = 5e8
+PUSH_MIN_CHANGE = 3.0
+PUSH_MIN_MAIN_NET_PCT = 5.0
+PUSH_MIN_CLOSE_STRENGTH = 0.65
+
 # ---- 热门板块过滤: 每日由 universe 快照动态统计 ----
 HOT_SECTOR_TOPN = 12
 HOT_SECTOR_CANDIDATE_TOPN = 30
@@ -315,6 +323,8 @@ def _trend_metrics(kline: list[list[float]]) -> dict | None:
     near_high20 = cur / high20 if high20 > 0 else None
     return {
         "现价": round(cur, 2),
+        "MA5": round(ma5, 2),
+        "MA10": round(ma10, 2),
         "MA20": round(ma20, 2),
         "MA60": round(ma60, 2),
         "放量比": round(vol_ratio, 3) if vol_ratio is not None else None,
@@ -342,6 +352,135 @@ def _trend_tier(m: dict, turnover_ew: float | None, theme_hit: bool,
     if (theme_hit or hot_sector) and m.get("站上MA20") and near_high >= 0.95:
         return "B-趋势确认", False
     return "C-观察", False
+
+
+def _close_strength(kline: list[list[float]]) -> float | None:
+    if not kline:
+        return None
+    close, high, low = float(kline[-1][0]), float(kline[-1][1]), float(kline[-1][2])
+    if high <= low:
+        return 1.0 if close >= high else None
+    return round((close - low) / (high - low), 4)
+
+
+def _push_tier(change_pct: float, main_pct: float, super_in: float,
+               m: dict, close_strength: float) -> tuple[str, str]:
+    """返回 (观察档位, 风险标签)。仅用于提示, 不作为买入建议。"""
+    mom20 = m.get("近20日涨幅") or 0
+    vol_ratio = m.get("放量比") or 0
+    risk = "正常"
+    if mom20 > 100:
+        risk = "过热不追"
+    elif mom20 >= 50 or change_pct >= 9.5 or vol_ratio > 3:
+        risk = "高位接力"
+    elif mom20 >= 30:
+        risk = "中段"
+    else:
+        risk = "早段"
+
+    if risk == "早段" and main_pct >= 8 and super_in > 0 and close_strength >= 0.75 \
+            and m.get("站上MA20"):
+        return "观察-早段推盘", risk
+    if risk in ("早段", "中段") and main_pct >= 5 and close_strength >= 0.65:
+        return "观察-推盘确认", risk
+    if risk == "高位接力":
+        return "观察-高位分歧", risk
+    return "观察-过热不追", risk
+
+
+def export_push_starts(uni_path: str, throttle: float,
+                       hot_sectors: set[str] | None = None) -> tuple[str, list[dict]]:
+    """导出推盘观察池。用于提示主力/超大单推价格痕迹, 不参与买入建议。"""
+    df = pd.read_csv(uni_path, dtype={"code": str})
+    df["code"] = df["code"].str.zfill(6)
+    num_cols = (
+        "price", "change_pct", "turnover_yuan", "volume_ratio", "pe_ttm",
+        "main_net_inflow", "main_net_pct", "super_net_inflow",
+        "super_net_pct", "large_net_inflow", "large_net_pct",
+    )
+    for col in num_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    hot_sectors = hot_sectors or set()
+    df["hot_sector"] = df.get("industry", "").astype(str).isin(hot_sectors)
+
+    candidates = df[
+        (df["turnover_yuan"].fillna(0) >= PUSH_TURNOVER_FLOOR)
+        & (df["change_pct"].fillna(-999) >= PUSH_MIN_CHANGE)
+        & (df["main_net_inflow"].fillna(0) > 0)
+        & (df["main_net_pct"].fillna(-999) >= PUSH_MIN_MAIN_NET_PCT)
+        & ((df["super_net_inflow"].fillna(0) > 0) | (df["large_net_inflow"].fillna(0) > 0))
+        & (df["pe_ttm"].fillna(0) > 0)
+    ].copy()
+    if candidates.empty:
+        recs: list[dict] = []
+    else:
+        candidates = candidates.sort_values(
+            ["hot_sector", "main_net_pct", "main_net_inflow", "turnover_yuan"],
+            ascending=[False, False, False, False],
+        ).head(PUSH_SCAN_BUDGET)
+        recs = []
+        for _, r in candidates.iterrows():
+            code = r["code"]
+            kline = chip_calc.fetch_kline(code)
+            m = _trend_metrics(kline) if kline else None
+            close_strength = _close_strength(kline) if kline else None
+            if not m or close_strength is None:
+                continue
+            stands_ma5 = m["现价"] > m["MA5"]
+            if not stands_ma5 or close_strength < PUSH_MIN_CLOSE_STRENGTH:
+                time.sleep(throttle)
+                continue
+
+            tier, risk = _push_tier(
+                float(r["change_pct"]), float(r["main_net_pct"]),
+                float(r.get("super_net_inflow") or 0), m, close_strength,
+            )
+            main_ew = round(float(r["main_net_inflow"]) / 1e8, 2)
+            super_ew = round(float(r.get("super_net_inflow") or 0) / 1e8, 2)
+            large_ew = round(float(r.get("large_net_inflow") or 0) / 1e8, 2)
+            turnover_ew = round(float(r["turnover_yuan"]) / 1e8, 2)
+            score = (
+                float(r["main_net_pct"]) * 2
+                + min(main_ew, 10) * 2
+                + close_strength * 10
+                + (5 if m.get("站上MA20") else 0)
+                + (3 if r.get("hot_sector") else 0)
+                - (12 if risk == "过热不追" else 0)
+                - (5 if risk == "高位接力" else 0)
+            )
+            recs.append({
+                "code": code,
+                "name": r.get("name"),
+                "industry": r.get("industry"),
+                "现价": m["现价"],
+                "当日涨幅": round(float(r["change_pct"]), 2),
+                "近5日涨幅": m["近5日涨幅"],
+                "近20日涨幅": m["近20日涨幅"],
+                "放量比": m["放量比"],
+                "收盘强度": close_strength,
+                "站上MA5": stands_ma5,
+                "站上MA20": m["站上MA20"],
+                "主力净流入亿": main_ew,
+                "主力净占比": round(float(r["main_net_pct"]), 2),
+                "超大单净流入亿": super_ew,
+                "大单净流入亿": large_ew,
+                "成交额亿": turnover_ew,
+                "量比": r.get("volume_ratio"),
+                "热门板块": bool(r.get("hot_sector")),
+                "推盘档位": tier,
+                "风险分层": risk,
+                "推盘分": round(score, 2),
+            })
+            time.sleep(throttle)
+
+    risk_rank = {"早段": 3, "中段": 2, "高位接力": 1, "过热不追": 0}
+    recs.sort(key=lambda x: (risk_rank.get(x["风险分层"], -1), x["推盘分"]), reverse=True)
+    recs = recs[:PUSH_TOPN]
+    ts = datetime.now().strftime("%Y%m%d")
+    path = os.path.join(OUTPUT_DIR, f"push_pool_{ts}.csv")
+    pd.DataFrame(recs).to_csv(path, index=False, encoding="utf-8-sig")
+    return path, recs
 
 
 def export_trend_starts(uni_path: str, throttle: float,
@@ -503,6 +642,13 @@ def run(universe: str | None = None, throttle: float = 0.8,
         print(f"[output] 板块热度 → {heat_path}")
         if top_sectors:
             print("[sector] 热门板块: " + " / ".join(top_sectors))
+        push_path, push_recs = export_push_starts(uni, throttle=throttle,
+                                                  hot_sectors=hot_sectors)
+        print(f"[output] 推盘观察池 {len(push_recs)} 只 → {push_path}")
+        for i, r in enumerate(push_recs, 1):
+            print(f"  P{i:>2}. {r['code']} {r['name']} {r.get('推盘档位')} "
+                  f"主力={r['主力净流入亿']:+.2f}亿/{r['主力净占比']:+.1f}% "
+                  f"强度={r['收盘强度']:.0%} 风险={r['风险分层']}")
         trend_path, trend_recs = export_trend_starts(uni, throttle=throttle,
                                                      hot_sectors=hot_sectors)
         print(f"[output] 强趋势启动池 {len(trend_recs)} 只 → {trend_path}")
@@ -513,6 +659,7 @@ def run(universe: str | None = None, throttle: float = 0.8,
                   f"近20高={r['接近20日高点']:.0%} 额={r['成交额亿']}亿")
     except Exception as e:  # noqa: BLE001
         trend_recs = []
+        push_recs = []
         top_sectors = []
         print(f"[trend] 强趋势启动池失败 (不影响主流程): {e}")
 
@@ -537,7 +684,8 @@ def run(universe: str | None = None, throttle: float = 0.8,
                     charts[r["code"]] = cp
             ov = overview.build_overview(passed[:HIGH_TOPN])   # 拼总览图
             notify.send_daily(recs, passed, charts, overview_path=ov,
-                              trend_recs=trend_recs, hot_sectors=top_sectors)
+                              trend_recs=trend_recs, hot_sectors=top_sectors,
+                              push_recs=push_recs)
         except Exception as e:  # noqa: BLE001
             print(f"[notify] 通知失败 (不影响主流程): {e}")
 

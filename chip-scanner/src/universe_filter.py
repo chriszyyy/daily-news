@@ -132,6 +132,7 @@ def main() -> None:
     ts = datetime.now().strftime("%Y%m%d")
     out_path = os.path.join(OUTPUT_DIR, f"universe_{ts}.csv")
     cols = ["code", "name", "price", "change_pct", "change_60d_pct",
+            "high_today", "low_today", "open_today",
             "turnover_yuan", "float_market_cap", "turnover_rate_pct",
             "volume_ratio", "pe_ttm", "成交额占流通比%", "健康度", "高位标记",
             "量比异动", "main_net_inflow", "main_net_pct",

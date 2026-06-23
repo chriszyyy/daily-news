@@ -41,7 +41,8 @@ def _load_config() -> dict:
 
 def _build_text(recs: list[dict], passed: list[dict],
                 trend_recs: list[dict] | None = None,
-                hot_sectors: list[str] | None = None) -> tuple[str, str]:
+                hot_sectors: list[str] | None = None,
+                push_recs: list[dict] | None = None) -> tuple[str, str]:
     """返回 (标题, markdown 正文)。"""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     title = f"筹码扫描 {datetime.now():%m-%d}: 单峰密集 Top{len(passed)}"
@@ -101,7 +102,22 @@ def _build_text(recs: list[dict], passed: list[dict],
                 f"· 量价: 放量比{r.get('放量比')}/额{r.get('成交额亿')}亿 "
                 f"· 分{r.get('趋势分')}")
 
-    lines += ["", f"_完整见 high_pool / trend_pool CSV_"]
+    push_recs = push_recs or []
+    if push_recs:
+        lines += ["", "### 推盘观察池"]
+        lines.append("> 仅提示资金推价痕迹，不作为买入建议；高位/过热默认只观察。")
+        lines.append("")
+        for i, r in enumerate(push_recs, 1):
+            lines.append(
+                f"**P{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
+                f"现价{r['现价']:.2f}\n"
+                f"　观察: {r.get('推盘档位')} / 风险{r.get('风险分层')} "
+                f"· 主力{r['主力净流入亿']:+.2f}亿/{r['主力净占比']:+.1f}% "
+                f"· 超大{r['超大单净流入亿']:+.2f}亿/大单{r['大单净流入亿']:+.2f}亿 "
+                f"· 强度{r['收盘强度']:.0%} · 5日{r['近5日涨幅']:+.1f}%/20日{r['近20日涨幅']:+.1f}% "
+                f"· 分{r.get('推盘分')}")
+
+    lines += ["", f"_完整见 high_pool / trend_pool / push_pool CSV_"]
     return title, "\n".join(lines)
 
 
@@ -160,11 +176,12 @@ def send_daily(recs: list[dict], passed: list[dict],
                charts: dict[str, str] | None = None,
                overview_path: str | None = None,
                trend_recs: list[dict] | None = None,
-               hot_sectors: list[str] | None = None) -> None:
+               hot_sectors: list[str] | None = None,
+               push_recs: list[dict] | None = None) -> None:
     """发送每日通知。recs=全部High, passed=入选, overview_path=总览图本地路径。"""
     cfg = _load_config()
     title, body = _build_text(recs, passed, trend_recs=trend_recs,
-                              hot_sectors=hot_sectors)
+                              hot_sectors=hot_sectors, push_recs=push_recs)
 
     # 总览图: push 到公开仓库, 取 jsDelivr CDN URL, 嵌入 Markdown
     img_url = None
