@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import time
 from datetime import datetime
@@ -43,6 +44,26 @@ SECOND_MAX = 0.50       # 次峰/主峰 <= 0.5 (单峰判据; 上港0.12/盛路0
 BAND70_MAX = 0.09       # 带宽70 <= 9% (密集判据; 上港4.2%/盛路8.4% 均过)
 POS_MIN = -0.05         # 现价 >= 主峰*0.95 (抛弃套牢盘)
 HIGH_TOPN = 20          # High 池每日取 Top-N (送终审)
+
+# ---- 强趋势启动池: 补足"已脱离横盘、正在发动"的趋势票 ----
+# 与单峰密集池并行, 不走 Low→Mid 横盘过滤; 用最新 K 线确认趋势启动。
+TREND_TOPN = 30
+TREND_SCAN_BUDGET = 250
+TREND_MIN_60D = 30.0             # 60日涨幅较强, 说明不是横盘密集逻辑
+TREND_MIN_MOM5 = 8.0             # 近5日涨幅 >= 8%
+TREND_NEAR_HIGH20 = 0.95         # 当前价接近近20日高点
+TREND_TURNOVER_FLOOR = 5e8       # 成交额 >= 5亿
+TREND_THEME_TURNOVER_FLOOR = 2e9 # 主题大票成交额 >= 20亿
+TREND_INDUSTRIES = ("半导体", "电子", "通信", "计算机", "光学", "元件")
+
+# ---- 热门板块过滤: 每日由 universe 快照动态统计 ----
+HOT_SECTOR_TOPN = 12
+HOT_SECTOR_CANDIDATE_TOPN = 30
+HOT_SECTOR_MIN_COUNT = 3
+HOT_SECTOR_KEYWORDS = (
+    "半导体", "电子", "通信", "计算机", "光学", "元件",
+    "电力", "电网", "自动化", "机器人", "通用设备", "专用设备",
+)
 
 # ---- 防抖 ----
 MID_MIN_STAY = 2        # Mid 最少停留天数 (内不降级)
@@ -218,6 +239,223 @@ def export_high(conn) -> tuple[str, list[dict]]:
     return path, recs
 
 
+def export_sector_heat(uni_path: str) -> tuple[str, pd.DataFrame, set[str]]:
+    """按行业统计当日热度, 输出 sector_heat_YYYYMMDD.csv 并返回热门行业集合。"""
+    df = pd.read_csv(uni_path, dtype={"code": str})
+    for col in ("change_pct", "turnover_yuan", "volume_ratio"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    if "industry" not in df.columns or df.empty:
+        heat = pd.DataFrame()
+        hot: set[str] = set()
+    else:
+        w = df[df["industry"].notna()].copy()
+        rows = []
+        for industry, g in w.groupby("industry"):
+            if len(g) < HOT_SECTOR_MIN_COUNT:
+                continue
+            chg = g["change_pct"].dropna()
+            turnover_ew = g["turnover_yuan"].fillna(0).sum() / 1e8
+            up_ratio = float((chg > 0).mean()) if len(chg) else 0.0
+            mean_chg = float(chg.mean()) if len(chg) else 0.0
+            median_chg = float(chg.median()) if len(chg) else 0.0
+            vol_ratio = float(g["volume_ratio"].dropna().mean()) if "volume_ratio" in g else 0.0
+            theme_hit = any(k in str(industry) for k in HOT_SECTOR_KEYWORDS)
+            heat_score = (
+                median_chg * 1.2
+                + mean_chg * 0.8
+                + up_ratio * 6
+                + math.log10(turnover_ew + 1) * 1.5
+                + min(vol_ratio, 5) * 0.6
+                + (1.5 if theme_hit else 0)
+            )
+            rows.append({
+                "industry": industry,
+                "股票数": int(len(g)),
+                "平均涨幅": round(mean_chg, 2),
+                "中位涨幅": round(median_chg, 2),
+                "上涨占比": round(up_ratio, 3),
+                "成交额亿": round(turnover_ew, 2),
+                "平均量比": round(vol_ratio, 2),
+                "主题匹配": theme_hit,
+                "热度分": round(heat_score, 2),
+            })
+        heat = pd.DataFrame(rows).sort_values("热度分", ascending=False)
+        top = heat.head(HOT_SECTOR_TOPN)
+        strategic = heat[
+            (heat["主题匹配"])
+            & ((heat["中位涨幅"] > 0) | (heat["上涨占比"] >= 0.5))
+        ].head(HOT_SECTOR_CANDIDATE_TOPN)
+        hot = set(top["industry"]) | set(strategic["industry"])
+
+    ts = datetime.now().strftime("%Y%m%d")
+    path = os.path.join(OUTPUT_DIR, f"sector_heat_{ts}.csv")
+    heat.to_csv(path, index=False, encoding="utf-8-sig")
+    return path, heat, hot
+
+
+def _trend_metrics(kline: list[list[float]]) -> dict | None:
+    """强趋势启动指标。只使用最新 K 线历史, 不依赖筹码密集。"""
+    if not kline or len(kline) < 60:
+        return None
+    import numpy as np
+    arr = np.array(kline, dtype=float)
+    closes, highs, trs = arr[:, 0], arr[:, 1], arr[:, 3]
+    cur = float(closes[-1])
+    ma5 = float(np.mean(closes[-5:]))
+    ma10 = float(np.mean(closes[-10:]))
+    ma20 = float(np.mean(closes[-20:]))
+    ma60 = float(np.mean(closes[-60:]))
+    high20_prev = float(np.max(highs[-21:-1])) if len(highs) >= 21 else float(np.max(highs[-20:]))
+    high20 = float(np.max(highs[-20:]))
+    base_vol = float(np.mean(trs[-25:-5])) if len(trs) >= 25 else 0.0
+    vol_ratio = float(np.mean(trs[-5:])) / base_vol if base_vol > 0 else None
+    mom5 = (cur / closes[-6] - 1) * 100 if closes[-6] > 0 else None
+    mom20 = (cur / closes[-21] - 1) * 100 if len(closes) >= 21 and closes[-21] > 0 else None
+    near_high20 = cur / high20 if high20 > 0 else None
+    return {
+        "现价": round(cur, 2),
+        "MA20": round(ma20, 2),
+        "MA60": round(ma60, 2),
+        "放量比": round(vol_ratio, 3) if vol_ratio is not None else None,
+        "近5日涨幅": round(mom5, 2) if mom5 is not None else None,
+        "近20日涨幅": round(mom20, 2) if mom20 is not None else None,
+        "突破20日新高": bool(cur >= high20_prev),
+        "接近20日高点": round(near_high20, 4) if near_high20 is not None else None,
+        "均线多头": bool(ma5 > ma10 > ma20),
+        "站上MA20": bool(cur > ma20),
+    }
+
+
+def _trend_tier(m: dict, turnover_ew: float | None, theme_hit: bool,
+                hot_sector: bool) -> tuple[str, bool]:
+    """返回 (A/B/C档, 是否过热)。"""
+    mom5 = m.get("近5日涨幅") or 0
+    mom20 = m.get("近20日涨幅") or 0
+    near_high = m.get("接近20日高点") or 0
+    overheat = bool(mom5 > 35 or mom20 > 100)
+    if overheat:
+        return "C-过热观察", True
+    if (theme_hit or hot_sector) and m.get("突破20日新高") and 8 <= mom5 <= 25 \
+            and (turnover_ew or 0) >= 20:
+        return "A-主线新高", False
+    if (theme_hit or hot_sector) and m.get("站上MA20") and near_high >= 0.95:
+        return "B-趋势确认", False
+    return "C-观察", False
+
+
+def export_trend_starts(uni_path: str, throttle: float,
+                        hot_sectors: set[str] | None = None) -> tuple[str, list[dict]]:
+    """导出强趋势启动池, 捕捉兆易创新/德明利这类非横盘强趋势票。"""
+    df = pd.read_csv(uni_path, dtype={"code": str})
+    df["code"] = df["code"].str.zfill(6)
+    for col in ("price", "change_60d_pct", "turnover_yuan", "volume_ratio", "pe_ttm"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    hot_sectors = hot_sectors or set()
+    df["theme_hit"] = df.get("industry", "").astype(str).apply(
+        lambda s: any(k in s for k in TREND_INDUSTRIES)
+    )
+    df["hot_sector"] = df.get("industry", "").astype(str).isin(hot_sectors)
+
+    candidates = df[
+        (df["change_60d_pct"].fillna(-999) >= TREND_MIN_60D)
+        & (df["turnover_yuan"].fillna(0) >= TREND_TURNOVER_FLOOR)
+        & (df["pe_ttm"].fillna(0) > 0)
+        & (df["theme_hit"] | df["hot_sector"])
+    ].copy()
+    if candidates.empty:
+        recs: list[dict] = []
+    else:
+        candidates = candidates.sort_values(
+            ["hot_sector", "theme_hit", "turnover_yuan", "change_60d_pct"],
+            ascending=[False, False, False, False],
+        ).head(TREND_SCAN_BUDGET)
+
+        recs = []
+        for _, r in candidates.iterrows():
+            code = r["code"]
+            kline = chip_calc.fetch_kline(code)
+            m = _trend_metrics(kline) if kline else None
+            if not m:
+                continue
+            mom5 = m.get("近5日涨幅")
+            near_high = m.get("接近20日高点")
+            theme_hit = bool(r.get("theme_hit"))
+            hot_sector = bool(r.get("hot_sector"))
+            turnover_yuan = r.get("turnover_yuan")
+            strong_breakout = (
+                m["站上MA20"]
+                and mom5 is not None and mom5 >= TREND_MIN_MOM5
+                and near_high is not None and near_high >= TREND_NEAR_HIGH20
+            )
+            theme_anchor = (
+                theme_hit
+                and pd.notna(turnover_yuan)
+                and turnover_yuan >= TREND_THEME_TURNOVER_FLOOR
+                and m["站上MA20"]
+                and mom5 is not None and mom5 >= 4.0
+                and near_high is not None and near_high >= 0.90
+            )
+            if not (strong_breakout or theme_anchor):
+                time.sleep(throttle)
+                continue
+            turnover_ew = round(turnover_yuan / 1e8, 2) if pd.notna(turnover_yuan) else None
+            turnover_score = min(turnover_ew / 20, 10) if turnover_ew is not None else 0
+            tier, overheat = _trend_tier(m, turnover_ew, theme_hit, hot_sector)
+            overheat_penalty = 20 if overheat else 0
+            score = (
+                float(mom5)
+                + max(float(m.get("近20日涨幅") or 0), 0) * 0.25
+                + (8 if m["突破20日新高"] else 0)
+                + (4 if m["均线多头"] else 0)
+                + (12 if theme_hit else 0)
+                + (8 if hot_sector else 0)
+                + turnover_score
+                + (math.log10(turnover_yuan) - 8 if pd.notna(turnover_yuan) and turnover_yuan > 0 else 0)
+                - overheat_penalty
+            )
+            recs.append({
+                "code": code,
+                "name": r.get("name"),
+                "industry": r.get("industry"),
+                "现价": m["现价"],
+                "60日涨幅": round(float(r.get("change_60d_pct")), 2),
+                "近5日涨幅": m["近5日涨幅"],
+                "近20日涨幅": m["近20日涨幅"],
+                "放量比": m["放量比"],
+                "站上MA20": m["站上MA20"],
+                "均线多头": m["均线多头"],
+                "突破20日新高": m["突破20日新高"],
+                "接近20日高点": m["接近20日高点"],
+                "成交额亿": turnover_ew,
+                "量比": r.get("volume_ratio"),
+                "PE": r.get("pe_ttm"),
+                "入选原因": "强趋势突破" if strong_breakout else "主题大票异动",
+                "主题大票": theme_anchor,
+                "热门板块": hot_sector,
+                "趋势档位": tier,
+                "过热风险": "是" if overheat else "否",
+                "趋势分": round(score, 2),
+            })
+            time.sleep(throttle)
+    strong = [r for r in recs if r["入选原因"] == "强趋势突破"]
+    anchors = [r for r in recs if r.get("主题大票")]
+    strong.sort(key=lambda x: (x["趋势档位"].startswith("A"), x["趋势分"]), reverse=True)
+    anchors.sort(key=lambda x: (x["成交额亿"] or 0, x["趋势分"]), reverse=True)
+    dedup: dict[str, dict] = {}
+    for r in strong[:20] + anchors[:10]:
+        dedup.setdefault(r["code"], r)
+    recs = list(dedup.values())
+    recs.sort(key=lambda x: (x["入选原因"] != "强趋势突破", -x["趋势分"]))
+    recs = recs[:TREND_TOPN]
+    ts = datetime.now().strftime("%Y%m%d")
+    path = os.path.join(OUTPUT_DIR, f"trend_pool_{ts}.csv")
+    pd.DataFrame(recs).to_csv(path, index=False, encoding="utf-8-sig")
+    return path, recs
+
+
 def run(universe: str | None = None, throttle: float = 0.8,
         max_mid: int = 0, notify_enabled: bool = True) -> list[dict]:
     """执行一次完整漏斗流程。返回 High 池记录 (含 verdict)。"""
@@ -259,6 +497,25 @@ def run(universe: str | None = None, throttle: float = 0.8,
     except Exception as e:  # noqa: BLE001
         print(f"[enrich] 增强失败 (不影响主流程): {e}")
 
+    try:
+        heat_path, heat_df, hot_sectors = export_sector_heat(uni)
+        top_sectors = heat_df.head(8)["industry"].tolist() if not heat_df.empty else []
+        print(f"[output] 板块热度 → {heat_path}")
+        if top_sectors:
+            print("[sector] 热门板块: " + " / ".join(top_sectors))
+        trend_path, trend_recs = export_trend_starts(uni, throttle=throttle,
+                                                     hot_sectors=hot_sectors)
+        print(f"[output] 强趋势启动池 {len(trend_recs)} 只 → {trend_path}")
+        for i, r in enumerate(trend_recs, 1):
+            print(f"  T{i:>2}. {r['code']} {r['name']} "
+                  f"{r.get('趋势档位')} "
+                  f"5日={r['近5日涨幅']:+.1f}% 20日={r['近20日涨幅']:+.1f}% "
+                  f"近20高={r['接近20日高点']:.0%} 额={r['成交额亿']}亿")
+    except Exception as e:  # noqa: BLE001
+        trend_recs = []
+        top_sectors = []
+        print(f"[trend] 强趋势启动池失败 (不影响主流程): {e}")
+
     # High 池即为入选 (单峰 + 密集 + 非套牢)
     passed = recs
     for i, r in enumerate(recs, 1):
@@ -279,7 +536,8 @@ def run(universe: str | None = None, throttle: float = 0.8,
                 if cp:
                     charts[r["code"]] = cp
             ov = overview.build_overview(passed[:HIGH_TOPN])   # 拼总览图
-            notify.send_daily(recs, passed, charts, overview_path=ov)
+            notify.send_daily(recs, passed, charts, overview_path=ov,
+                              trend_recs=trend_recs, hot_sectors=top_sectors)
         except Exception as e:  # noqa: BLE001
             print(f"[notify] 通知失败 (不影响主流程): {e}")
 

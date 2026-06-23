@@ -49,6 +49,10 @@ import chip_calc as cc
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
 HOLD_DAYS = (5, 10, 20)
+RECENT_PRESET_DATES = (
+    "2026-04-01", "2026-04-15", "2026-04-29",
+    "2026-05-09", "2026-05-16", "2026-05-23",
+)
 
 # 复用 chip_calc 的策略阈值 (从 orchestrator 同步, 避免漂移)
 SECOND_MAX = 0.50
@@ -349,27 +353,80 @@ def run_momentum(signal_date: str, topn: int, throttle: float,
     return df
 
 
+def summarize_trend_batch(dates: list[str], throttle: float, limit: int = 0) -> None:
+    """多日期趋势条件验证。只使用信号日前 K 线, 不用当天之后信息。"""
+    frames = []
+    for sd in dates:
+        df = run_momentum(sd, topn=99999, throttle=throttle, limit=limit)
+        if not df.empty:
+            df["信号日"] = sd
+            frames.append(df)
+    if not frames:
+        log("[trend-batch] 无样本")
+        return
+    df = pd.concat(frames, ignore_index=True)
+    for c in ("放量比", "近5日涨幅", "近20日涨幅"):
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    for c in ("突破20日新高", "均线多头", "站上MA20"):
+        df[c] = df[c].astype(str).str.lower().isin(("true", "1", "是"))
+
+    tests = {
+        "T1 站上MA20": df["站上MA20"],
+        "T2 新高": df["突破20日新高"],
+        "T3 新高+5日涨>=8": df["突破20日新高"] & (df["近5日涨幅"] >= 8),
+        "T4 站上MA20+5日涨8~25": (
+            df["站上MA20"] & (df["近5日涨幅"] >= 8) & (df["近5日涨幅"] <= 25)
+        ),
+        "T5 过热(5日>35或20日>100)": (
+            (df["近5日涨幅"] > 35) | (df["近20日涨幅"] > 100)
+        ),
+    }
+    log("==== 趋势条件多日期汇总 ====")
+    for label, mask in tests.items():
+        sub = df[mask]
+        log(f"[{label}] n={len(sub)}")
+        for n in HOLD_DAYS:
+            s = pd.to_numeric(sub[f"+{n}日%"], errors="coerce").dropna()
+            if len(s):
+                win = (s > 0).sum()
+                log(f"  +{n}日: 均{s.mean():+.2f}% 中位{s.median():+.2f}% "
+                    f"胜率{win}/{len(s)}={win/len(s):.0%} "
+                    f"P25{s.quantile(.25):+.2f}% P75{s.quantile(.75):+.2f}%")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--signal-date", required=True,
+    ap.add_argument("--signal-date", default="",
                     help="信号日, 逗号分隔多个 (YYYY-MM-DD)")
+    ap.add_argument("--preset", choices=["recent"], default=None,
+                    help="预设多日期样本; recent=近期 6 个信号日")
     ap.add_argument("--topn", type=int, default=20)
     ap.add_argument("--throttle", type=float, default=0.2)
     ap.add_argument("--limit", type=int, default=0, help="限制候选数(测试用)")
-    ap.add_argument("--mode", default="chip", choices=["chip", "momentum"],
-                    help="chip=筹码密集策略, momentum=启动型量价策略")
+    ap.add_argument("--mode", default="chip", choices=["chip", "momentum", "trend-batch"],
+                    help="chip=筹码密集, momentum=量价, trend-batch=多日期趋势验证")
     args = ap.parse_args()
+
+    if args.preset == "recent":
+        dates = list(RECENT_PRESET_DATES)
+    else:
+        dates = [sd.strip() for sd in args.signal_date.split(",") if sd.strip()]
+    if not dates:
+        raise SystemExit("请提供 --signal-date 或 --preset recent")
+    if args.mode == "trend-batch":
+        summarize_trend_batch(dates, args.throttle, args.limit)
+        return
 
     runner = run_momentum if args.mode == "momentum" else run_one
     all_dfs = []
-    for sd in args.signal_date.split(","):
-        df = runner(sd.strip(), args.topn, args.throttle, args.limit)
+    for sd in dates:
+        df = runner(sd, args.topn, args.throttle, args.limit)
         if not df.empty:
-            df["信号日"] = sd.strip()
+            df["信号日"] = sd
             all_dfs.append(df)
     if all_dfs:
         merged = pd.concat(all_dfs, ignore_index=True)
-        ts = "_".join(args.signal_date.replace("-", "").split(","))
+        ts = "_".join(d.replace("-", "") for d in dates)
         out = os.path.join(OUTPUT_DIR, f"backtest_{ts}.csv")
         merged.to_csv(out, index=False, encoding="utf-8-sig")
         log(f"[output] 明细 → {out}")

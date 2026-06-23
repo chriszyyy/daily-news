@@ -2,8 +2,8 @@
 L1 抓取层 — 东方财富全 A 股快照(可控节流版)。
 
 策略(避免被 ban IP):
-  - 直接打 push2 API,自己翻页,每页之间 sleep 3-5s
-  - 失败指数退避(失败 1 次 sleep 30s,2 次 60s,3 次 120s)
+  - 直接打 push2 API,自己翻页,每页之间 sleep 2-4s
+  - 多 host 轮换; 单 host 断连时快速切换, 避免整轮超时
   - 总 page < 60(每页 100 只 → 5500+ 全 A)
   - 单次完整跑预计 4-6 分钟
   - 每页 UA 轮换,带 Referer
@@ -71,6 +71,13 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
 ]
 
+PUSH2_HOSTS = [
+    "https://48.push2.eastmoney.com",
+    "https://push2.eastmoney.com",
+    "https://76.push2.eastmoney.com",
+    "https://82.push2.eastmoney.com",
+]
+
 
 def detect_exchange(code: str) -> str:
     if code.startswith("6"):
@@ -82,10 +89,11 @@ def detect_exchange(code: str) -> str:
     return "?"
 
 
-def build_url(page: int, page_size: int = 100) -> str:
+def build_url(page: int, page_size: int = 100, host: str | None = None) -> str:
     # fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23  →  沪深 A 股(主板+中小板+创业板+科创板)
+    host = host or PUSH2_HOSTS[0]
     return (
-        f"https://push2.eastmoney.com/api/qt/clist/get?"
+        f"{host}/api/qt/clist/get?"
         f"pn={page}&pz={page_size}&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281"
         f"&fltt=2&invt=2&dect=1"
         f"&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
@@ -94,11 +102,13 @@ def build_url(page: int, page_size: int = 100) -> str:
     )
 
 
-def fetch_page(page: int, attempt: int = 0, verbose: bool = True) -> tuple[list[dict] | None, int]:
+def fetch_page(page: int, attempt: int = 0, verbose: bool = True,
+               page_size: int = 100) -> tuple[list[dict] | None, int]:
     """
     返回 (rows, total_count)。失败返回 (None, 0)。
     """
-    url = build_url(page)
+    host = PUSH2_HOSTS[(page + attempt - 1) % len(PUSH2_HOSTS)]
+    url = build_url(page, page_size=page_size, host=host)
     ua = random.choice(USER_AGENTS)
     req = urllib.request.Request(url, headers={
         "User-Agent": ua,
@@ -107,7 +117,7 @@ def fetch_page(page: int, attempt: int = 0, verbose: bool = True) -> tuple[list[
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     })
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urllib.request.urlopen(req, timeout=10) as r:
             raw = r.read().decode("utf-8", errors="ignore")
         data = json.loads(raw)
         if not data or "data" not in data or not data["data"]:
@@ -140,7 +150,7 @@ def fetch_page(page: int, attempt: int = 0, verbose: bool = True) -> tuple[list[
         return rows, total
     except Exception as e:
         if verbose:
-            print(f"[fetch] 页 {page} 第 {attempt+1} 次失败: {type(e).__name__}: {e}", flush=True)
+            print(f"[fetch] 页 {page} 第 {attempt+1} 次失败({host}): {type(e).__name__}: {e}", flush=True)
         return None, 0
 
 
@@ -157,14 +167,15 @@ def fetch_all(sleep_sec: float = 4.0, page_size: int = 100, max_pages: int = 60,
     page = 1
     while page <= max_pages:
         rows = None
-        for attempt in range(3):
-            rows, total = fetch_page(page, attempt=attempt, verbose=verbose)
+        for attempt in range(6):
+            rows, total = fetch_page(page, attempt=attempt, verbose=verbose,
+                                     page_size=page_size)
             if rows is not None:
                 if total_count == 0 and total > 0:
                     total_count = total
                 break
             # 退避
-            backoff = [30, 60, 120][attempt]
+            backoff = [5, 10, 20, 30, 45, 60][attempt]
             if verbose:
                 print(f"[fetch] 退避 {backoff}s 后重试", flush=True)
             time.sleep(backoff)
@@ -172,7 +183,7 @@ def fetch_all(sleep_sec: float = 4.0, page_size: int = 100, max_pages: int = 60,
         if rows is None:
             failed_pages.append(page)
             if verbose:
-                print(f"[fetch] 页 {page} 三次失败,跳过", flush=True)
+                print(f"[fetch] 页 {page} 多 host 重试失败,跳过", flush=True)
         else:
             all_rows.extend(rows)
             if verbose:

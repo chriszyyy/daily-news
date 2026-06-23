@@ -46,7 +46,7 @@ HIGH_RUN_60D = 80.0           # 60 日涨幅高位标记线 %
 VOL_RATIO_SPIKE = 5.0         # 量比异动线
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
-SLEEP_SEC = 4.0               # 页间节流
+SLEEP_SEC = 2.0               # 页间节流; fetcher 已做 host 轮换和退避
 
 
 def fetch_spot() -> pd.DataFrame:

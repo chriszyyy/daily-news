@@ -39,13 +39,17 @@ def _load_config() -> dict:
     return {}
 
 
-def _build_text(recs: list[dict], passed: list[dict]) -> tuple[str, str]:
+def _build_text(recs: list[dict], passed: list[dict],
+                trend_recs: list[dict] | None = None,
+                hot_sectors: list[str] | None = None) -> tuple[str, str]:
     """返回 (标题, markdown 正文)。"""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     title = f"筹码扫描 {datetime.now():%m-%d}: 单峰密集 Top{len(passed)}"
 
     lines = [f"## 筹码扫描结果 {ts}", "",
              "盈利 + 单峰密集 (120日窗口, 按带宽升序)", ""]
+    if hot_sectors:
+        lines += ["### 今日热门板块", " / ".join(hot_sectors[:8]), ""]
     if not passed:
         lines.append("今日**无**符合条件的单峰密集标的。")
     else:
@@ -79,7 +83,25 @@ def _build_text(recs: list[dict], passed: list[dict]) -> tuple[str, str]:
                 f"· 资金{fund_mark}: 主力{main}/超大{super_flow}/大单{large} "
                 f"· 业绩: 净利{np_yoy}/营收{rev_yoy}/ROE{roe} "
                 f"· 量价: 量比{vr}/额{amt}")
-    lines += ["", f"_完整见 high_pool CSV_"]
+    trend_recs = trend_recs or []
+    if trend_recs:
+        lines += ["", "### 强趋势启动池"]
+        lines.append("> 补充捕捉已脱离横盘、正在发动的趋势票；不要求单峰密集。")
+        lines.append("")
+        for i, r in enumerate(trend_recs, 1):
+            breakout = "新高" if r.get("突破20日新高") else "近高"
+            ma = "多头" if r.get("均线多头") else "站上MA20"
+            pe = f"{r.get('PE'):.0f}" if isinstance(r.get("PE"), (int, float)) else "—"
+            lines.append(
+                f"**T{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
+                f"现价{r['现价']:.2f} PE{pe}\n"
+                f"　趋势: {r.get('趋势档位','')} 5日{r['近5日涨幅']:+.1f}%/20日{r['近20日涨幅']:+.1f}% "
+                f"· {breakout} {r['接近20日高点']:.0%} · {ma} · {r.get('入选原因')} "
+                f"· 过热{r.get('过热风险','否')} "
+                f"· 量价: 放量比{r.get('放量比')}/额{r.get('成交额亿')}亿 "
+                f"· 分{r.get('趋势分')}")
+
+    lines += ["", f"_完整见 high_pool / trend_pool CSV_"]
     return title, "\n".join(lines)
 
 
@@ -136,10 +158,13 @@ def _push_wecom_image(webhook: str, img_path: str) -> bool:
 
 def send_daily(recs: list[dict], passed: list[dict],
                charts: dict[str, str] | None = None,
-               overview_path: str | None = None) -> None:
+               overview_path: str | None = None,
+               trend_recs: list[dict] | None = None,
+               hot_sectors: list[str] | None = None) -> None:
     """发送每日通知。recs=全部High, passed=入选, overview_path=总览图本地路径。"""
     cfg = _load_config()
-    title, body = _build_text(recs, passed)
+    title, body = _build_text(recs, passed, trend_recs=trend_recs,
+                              hot_sectors=hot_sectors)
 
     # 总览图: push 到公开仓库, 取 jsDelivr CDN URL, 嵌入 Markdown
     img_url = None

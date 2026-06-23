@@ -1,8 +1,7 @@
 """调度器 — 每日盘后自动运行筹码扫描漏斗 (APScheduler)。
 
 计划:
-  - 每个交易日 16:15  : 运行 orchestrator (Mid+High 筹码扫描 + 形态终审 + 通知)。
-  - 每周五      16:20  : 先刷新全市场 universe (基础过滤), 再运行 orchestrator。
+  - 每个交易日 16:05  : 先刷新全市场 universe (基础过滤), 再运行 orchestrator。
 
 交易日判定: 周一~周五且非节假日 (简易版仅排除周末; 节假日可后续接日历)。
 universe 刷新依赖东财 clist, 若被限流会自动沿用最近一次 universe CSV。
@@ -53,7 +52,7 @@ def refresh_universe() -> None:
     log.info("刷新全市场 universe ...")
     try:
         subprocess.run([sys.executable, os.path.join(SRC, "universe_filter.py")],
-                       check=False, timeout=900)
+                       check=False, timeout=1500)
     except Exception as e:  # noqa: BLE001
         log.warning("universe 刷新失败 (将沿用旧快照): %s", e)
 
@@ -62,18 +61,12 @@ def daily_job() -> None:
     if not is_trading_day():
         log.info("非交易日, 跳过")
         return
+    refresh_universe()
     log.info("运行每日筹码扫描 ...")
     try:
         orchestrator.run(throttle=0.4, notify_enabled=True)
     except Exception as e:  # noqa: BLE001
         log.exception("orchestrator 异常: %s", e)
-
-
-def friday_job() -> None:
-    if not is_trading_day():
-        return
-    refresh_universe()
-    daily_job()
 
 
 def main() -> None:
@@ -87,11 +80,9 @@ def main() -> None:
 
     try:
         sched = BlockingScheduler(timezone="Asia/Shanghai")
-        sched.add_job(daily_job, CronTrigger(day_of_week="mon-thu", hour=16,
-                                             minute=15), id="daily")
-        sched.add_job(friday_job, CronTrigger(day_of_week="fri", hour=16,
-                                              minute=20), id="friday")
-        log.info("调度器启动: 周一~四 16:15 扫描; 周五 16:20 刷新+扫描")
+        sched.add_job(daily_job, CronTrigger(day_of_week="mon-fri", hour=16,
+                                             minute=5), id="daily")
+        log.info("调度器启动: 周一~五 16:05 刷新 universe + 扫描")
         sched.start()
     except (KeyboardInterrupt, SystemExit):
         log.info("已停止")
