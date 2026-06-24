@@ -370,6 +370,23 @@ def summarize_trend_batch(dates: list[str], throttle: float, limit: int = 0) -> 
     for c in ("突破20日新高", "均线多头", "站上MA20"):
         df[c] = df[c].astype(str).str.lower().isin(("true", "1", "是"))
 
+    def tier(row) -> str | None:
+        mom5 = row.get("近5日涨幅")
+        mom20 = row.get("近20日涨幅")
+        if pd.isna(mom5) or pd.isna(mom20):
+            return None
+        if mom5 > 35 or mom20 > 100:
+            return "C-过热观察"
+        if row["突破20日新高"] and 8 <= mom5 <= 25:
+            return "A-主线新高"
+        if row["站上MA20"] and 8 <= mom5 <= 35:
+            return "B-趋势确认"
+        if row["站上MA20"] and mom5 > 3:
+            return "C-观察"
+        return None
+
+    df["趋势档位"] = df.apply(tier, axis=1)
+
     tests = {
         "T1 站上MA20": df["站上MA20"],
         "T2 新高": df["突破20日新高"],
@@ -392,6 +409,22 @@ def summarize_trend_batch(dates: list[str], throttle: float, limit: int = 0) -> 
                 log(f"  +{n}日: 均{s.mean():+.2f}% 中位{s.median():+.2f}% "
                     f"胜率{win}/{len(s)}={win/len(s):.0%} "
                     f"P25{s.quantile(.25):+.2f}% P75{s.quantile(.75):+.2f}%")
+
+    log("==== 趋势池 A/B/C 分档汇总 ====")
+    for label in ("A-主线新高", "B-趋势确认", "C-观察", "C-过热观察"):
+        sub = df[df["趋势档位"].eq(label)]
+        log(f"[{label}] n={len(sub)}")
+        for n in HOLD_DAYS:
+            s = pd.to_numeric(sub[f"+{n}日%"], errors="coerce").dropna()
+            if len(s):
+                win = (s > 0).sum()
+                log(f"  +{n}日: 均{s.mean():+.2f}% 中位{s.median():+.2f}% "
+                    f"胜率{win}/{len(s)}={win/len(s):.0%} "
+                    f"P25{s.quantile(.25):+.2f}% P75{s.quantile(.75):+.2f}%")
+
+    out = os.path.join(OUTPUT_DIR, "trend_tier_backtest_summary.csv")
+    df[df["趋势档位"].notna()].to_csv(out, index=False, encoding="utf-8-sig")
+    log(f"[output] 趋势分档明细 → {out}")
 
 
 def main() -> None:

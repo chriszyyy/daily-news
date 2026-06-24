@@ -47,27 +47,40 @@ def _build_text(recs: list[dict], passed: list[dict],
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     title = f"筹码扫描 {datetime.now():%m-%d}: 单峰密集 Top{len(passed)}"
 
-    lines = [f"## 筹码扫描结果 {ts}", "",
-             "盈利 + 单峰密集 (120日窗口, 按带宽升序)", ""]
+    def _num(v, fmt="{:.1f}", suffix=""):
+        return (fmt.format(v) + suffix) if isinstance(v, (int, float)) else "—"
+
+    lines = [
+        f"## 筹码扫描结果 {ts}",
+        "",
+        "**策略池**",
+        f"- 单峰密集: {len(passed)} 只",
+        f"- 强趋势启动: {len(trend_recs or [])} 只",
+        f"- 推盘观察: {len(push_recs or [])} 只",
+        "",
+    ]
     if hot_sectors:
-        lines += ["### 今日热门板块", " / ".join(hot_sectors[:8]), ""]
+        lines += [
+            "### 今日热门板块",
+            "",
+            *[f"- {s}" for s in hot_sectors[:8]],
+            "",
+        ]
     if not passed:
         lines.append("今日**无**符合条件的单峰密集标的。")
     else:
         lines.append("### 入选标的")
-        lines.append("> 格式: 形态(带宽/次峰比/距主峰) · 资金(主力/超大单/大单) · 基本面 · 量价")
+        lines.append("")
+        lines.append("> 格式: 形态 / 资金 / 业绩 / 量价")
         lines.append("")
         for i, r in enumerate(passed, 1):
             def _f(v, suf="%"):
                 return f"{v:+.0f}{suf}" if isinstance(v, (int, float)) else "—"
             np_yoy = _f(r.get("净利润同比"))
             rev_yoy = _f(r.get("营收同比"))
-            roe = (f"{r['ROE']:.1f}%" if isinstance(r.get("ROE"), (int, float))
-                   else "—")
-            vr = (f"{r['量比']:.1f}" if isinstance(r.get("量比"), (int, float))
-                  else "—")
-            amt = (f"{r['成交额亿']:.1f}亿"
-                   if isinstance(r.get("成交额亿"), (int, float)) else "—")
+            roe = _num(r.get("ROE"), "{:.1f}", "%")
+            vr = _num(r.get("量比"), "{:.1f}")
+            amt = _num(r.get("成交额亿"), "{:.1f}", "亿")
             main = (f"{r['主力净流入亿']:+.2f}亿/{r.get('主力净占比'):+.1f}%"
                     if isinstance(r.get("主力净流入亿"), (int, float))
                     and isinstance(r.get("主力净占比"), (int, float)) else "—")
@@ -77,48 +90,55 @@ def _build_text(recs: list[dict], passed: list[dict],
             large = (f"{r['大单净流入亿']:+.2f}亿"
                      if isinstance(r.get("大单净流入亿"), (int, float)) else "—")
             fund_mark = "✓" if r.get("资金确认") == "是" else "—"
-            lines.append(
-                f"**{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
-                f"现价{r['price']:.2f} PE{r['PE']:.0f}\n"
-                f"　形态: 带宽{r['带宽70']:.0%}/次峰{r['次峰比']:.2f}/距峰{r['距主峰']:+.0%} "
-                f"· 资金{fund_mark}: 主力{main}/超大{super_flow}/大单{large} "
-                f"· 业绩: 净利{np_yoy}/营收{rev_yoy}/ROE{roe} "
-                f"· 量价: 量比{vr}/额{amt}")
+            pe = _num(r.get("PE"), "{:.0f}")
+            price = _num(r.get("price"), "{:.2f}")
+            lines += [
+                f"- **{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"  - 价格/估值: {price} / PE {pe}",
+                f"  - 形态: 带宽 {r['带宽70']:.0%} / 次峰 {r['次峰比']:.2f} / 距峰 {r['距主峰']:+.0%}",
+                f"  - 资金{fund_mark}: 主力 {main} / 超大 {super_flow} / 大单 {large}",
+                f"  - 业绩: 净利 {np_yoy} / 营收 {rev_yoy} / ROE {roe}",
+                f"  - 量价: 量比 {vr} / 额 {amt}",
+                "",
+            ]
     trend_recs = trend_recs or []
     if trend_recs:
-        lines += ["", "### 强趋势启动池"]
+        lines += ["", "### 强趋势启动池", ""]
         lines.append("> 补充捕捉已脱离横盘、正在发动的趋势票；不要求单峰密集。")
         lines.append("")
         for i, r in enumerate(trend_recs, 1):
             breakout = "新高" if r.get("突破20日新高") else "近高"
             ma = "多头" if r.get("均线多头") else "站上MA20"
             pe = f"{r.get('PE'):.0f}" if isinstance(r.get("PE"), (int, float)) else "—"
-            lines.append(
-                f"**T{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
-                f"现价{r['现价']:.2f} PE{pe}\n"
-                f"　趋势: {r.get('趋势档位','')} 5日{r['近5日涨幅']:+.1f}%/20日{r['近20日涨幅']:+.1f}% "
-                f"· {breakout} {r['接近20日高点']:.0%} · {ma} · {r.get('入选原因')} "
-                f"· 过热{r.get('过热风险','否')} "
-                f"· 量价: 放量比{r.get('放量比')}/额{r.get('成交额亿')}亿 "
-                f"· 分{r.get('趋势分')}")
+            lines += [
+                f"- **T{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"  - 档位: {r.get('趋势档位','')} / {r.get('入选原因')} / 过热 {r.get('过热风险','否')}",
+                f"  - 趋势: 5日 {r['近5日涨幅']:+.1f}% / 20日 {r['近20日涨幅']:+.1f}% / {breakout} {r['接近20日高点']:.0%} / {ma}",
+                f"  - 量价: 放量比 {r.get('放量比')} / 额 {r.get('成交额亿')}亿 / PE {pe} / 分 {r.get('趋势分')}",
+                "",
+            ]
 
     push_recs = push_recs or []
     if push_recs:
-        lines += ["", "### 推盘观察池"]
+        lines += ["", "### 推盘观察池", ""]
         lines.append("> 仅提示资金推价痕迹，不作为买入建议；高位/过热默认只观察。")
         lines.append("")
         for i, r in enumerate(push_recs, 1):
-            lines.append(
-                f"**P{i}. {r['code']} {r['name']}** ({r.get('industry','')}) "
-                f"现价{r['现价']:.2f}\n"
-                f"　观察: {r.get('推盘档位')} / 风险{r.get('风险分层')} "
-                f"· 主力{r['主力净流入亿']:+.2f}亿/{r['主力净占比']:+.1f}% "
-                f"· 超大{r['超大单净流入亿']:+.2f}亿/大单{r['大单净流入亿']:+.2f}亿 "
-                f"· 强度{r['收盘强度']:.0%} · 5日{r['近5日涨幅']:+.1f}%/20日{r['近20日涨幅']:+.1f}% "
-                f"· 分{r.get('推盘分')}")
+            lines += [
+                f"- **P{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"  - 观察: {r.get('推盘档位')} / 风险 {r.get('风险分层')}",
+                f"  - 资金: 主力 {r['主力净流入亿']:+.2f}亿/{r['主力净占比']:+.1f}% / 超大 {r['超大单净流入亿']:+.2f}亿 / 大单 {r['大单净流入亿']:+.2f}亿",
+                f"  - 强度: 收盘 {r['收盘强度']:.0%} / 5日 {r['近5日涨幅']:+.1f}% / 20日 {r['近20日涨幅']:+.1f}% / 分 {r.get('推盘分')}",
+                "",
+            ]
 
     lines += ["", f"_完整见 high_pool / trend_pool / push_pool CSV_"]
-    return title, "\n".join(lines)
+    body = "\n".join(lines)
+    # Server酱/微信 Markdown 对连续块较敏感; 统一加空行提升可读性。
+    body = body.replace("\n- **", "\n\n- **")
+    body = body.replace("\n### ", "\n\n### ")
+    body = body.replace("\n> ", "\n\n> ")
+    return title, body
 
 
 def _local_log(title: str, body: str) -> str:
@@ -142,6 +162,7 @@ def _push_pushdeer(key: str, title: str, body: str) -> bool:
 
 def _push_serverchan(key: str, title: str, body: str) -> bool:
     try:
+        body = body.replace("\n", "\n\n")
         r = requests.post(f"https://sctapi.ftqq.com/{key}.send",
                           data={"title": title, "desp": body}, timeout=10)
         return r.ok and r.json().get("code") == 0
