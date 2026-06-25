@@ -72,6 +72,15 @@ HOT_SECTOR_KEYWORDS = (
     "半导体", "电子", "通信", "计算机", "光学", "元件",
     "电力", "电网", "自动化", "机器人", "通用设备", "专用设备",
 )
+DEFENSIVE_INDUSTRIES = (
+    "银行", "电力", "铁路公路", "航运港口", "港口", "高速",
+    "煤炭", "保险", "公用事业", "水务", "燃气",
+)
+OFFENSIVE_INDUSTRIES = (
+    "半导体", "电子", "通信", "计算机", "光学", "元件",
+    "电网", "机器人", "通用设备", "专用设备", "消费电子",
+    "小金属", "工业金属", "新材料", "电池",
+)
 
 # ---- 防抖 ----
 MID_MIN_STAY = 2        # Mid 最少停留天数 (内不降级)
@@ -215,16 +224,24 @@ def export_high(conn) -> tuple[str, list[dict]]:
     rows = db.get_by_level(conn, "High")
     recs = []
     for r in rows:
+        industry = r["industry"] or ""
         fund_confirmed = (
             (r["main_net_inflow"] or 0) > 0
             and ((r["super_net_inflow"] or 0) > 0 or (r["large_net_inflow"] or 0) > 0)
         )
+        if any(k in industry for k in OFFENSIVE_INDUSTRIES):
+            style = "进攻单峰"
+        elif any(k in industry for k in DEFENSIVE_INDUSTRIES):
+            style = "防守单峰"
+        else:
+            style = "普通单峰"
         recs.append({
             "code": r["code"], "name": r["name"], "price": r["price"],
             "主峰价": r["avg_cost"], "PE": r["pe_ttm"],
             "次峰比": r["second_ratio"], "带宽70": r["band70"],
             "尖锐度": r["sharpness"], "主峰占比": r["dominance"],
             "距主峰": r["near_peak"],
+            "单峰类型": style,
             "资金确认": "是" if fund_confirmed else "否",
             "主力净流入亿": (round(r["main_net_inflow"] / 1e8, 2)
                          if r["main_net_inflow"] is not None else None),
@@ -236,7 +253,7 @@ def export_high(conn) -> tuple[str, list[dict]]:
                          if r["large_net_inflow"] is not None else None),
             "大单净占比": r["large_net_pct"],
             "90成本低": r["cost_low90"], "90成本高": r["cost_high90"],
-            "industry": r["industry"], "chip_date": r["chip_date"],
+            "industry": industry, "chip_date": r["chip_date"],
         })
     # 带宽70 升序 (越密集越靠前)
     recs.sort(key=lambda x: (x["带宽70"] if x["带宽70"] is not None else 9))
@@ -249,6 +266,20 @@ def export_high(conn) -> tuple[str, list[dict]]:
 
 def export_sector_heat(uni_path: str) -> tuple[str, pd.DataFrame, set[str]]:
     """按行业统计当日热度, 输出 sector_heat_YYYYMMDD.csv 并返回热门行业集合。"""
+    ts = datetime.now().strftime("%Y%m%d")
+    prev_files = sorted(
+        f for f in os.listdir(OUTPUT_DIR)
+        if f.startswith("sector_heat_") and f.endswith(".csv")
+        and not f.endswith(f"{ts}.csv")
+    )
+    prev_heat = None
+    if prev_files:
+        try:
+            prev_heat = pd.read_csv(os.path.join(OUTPUT_DIR, prev_files[-1]))
+            prev_heat["昨日排名"] = range(1, len(prev_heat) + 1)
+        except Exception:  # noqa: BLE001
+            prev_heat = None
+
     df = pd.read_csv(uni_path, dtype={"code": str})
     for col in ("change_pct", "turnover_yuan", "volume_ratio"):
         if col in df.columns:
@@ -288,7 +319,32 @@ def export_sector_heat(uni_path: str) -> tuple[str, pd.DataFrame, set[str]]:
                 "主题匹配": theme_hit,
                 "热度分": round(heat_score, 2),
             })
-        heat = pd.DataFrame(rows).sort_values("热度分", ascending=False)
+        heat = pd.DataFrame(rows).sort_values("热度分", ascending=False).reset_index(drop=True)
+        heat["排名"] = range(1, len(heat) + 1)
+        if prev_heat is not None and not prev_heat.empty:
+            prev_cols = ["industry", "昨日排名", "热度分", "成交额亿", "中位涨幅", "上涨占比"]
+            prev = prev_heat[[c for c in prev_cols if c in prev_heat.columns]].copy()
+            prev = prev.rename(columns={
+                "热度分": "昨日热度分",
+                "成交额亿": "昨日成交额亿",
+                "中位涨幅": "昨日中位涨幅",
+                "上涨占比": "昨日上涨占比",
+            })
+            heat = heat.merge(prev, on="industry", how="left")
+            heat["排名变化"] = (heat["昨日排名"] - heat["排名"]).where(heat["昨日排名"].notna())
+            heat["热度变化"] = (heat["热度分"] - heat["昨日热度分"]).round(2)
+            heat["成交额变化亿"] = (heat["成交额亿"] - heat["昨日成交额亿"]).round(2)
+            heat["中位涨幅变化"] = (heat["中位涨幅"] - heat["昨日中位涨幅"]).round(2)
+            heat["上涨占比变化"] = (heat["上涨占比"] - heat["昨日上涨占比"]).round(3)
+        else:
+            heat["昨日排名"] = None
+            heat["排名变化"] = None
+            heat["昨日热度分"] = None
+            heat["热度变化"] = None
+            heat["昨日成交额亿"] = None
+            heat["成交额变化亿"] = None
+            heat["中位涨幅变化"] = None
+            heat["上涨占比变化"] = None
         top = heat.head(HOT_SECTOR_TOPN)
         strategic = heat[
             (heat["主题匹配"])
@@ -296,7 +352,6 @@ def export_sector_heat(uni_path: str) -> tuple[str, pd.DataFrame, set[str]]:
         ].head(HOT_SECTOR_CANDIDATE_TOPN)
         hot = set(top["industry"]) | set(strategic["industry"])
 
-    ts = datetime.now().strftime("%Y%m%d")
     path = os.path.join(OUTPUT_DIR, f"sector_heat_{ts}.csv")
     heat.to_csv(path, index=False, encoding="utf-8-sig")
     return path, heat, hot
@@ -343,13 +398,15 @@ def _trend_tier(m: dict, turnover_ew: float | None, theme_hit: bool,
     mom5 = m.get("近5日涨幅") or 0
     mom20 = m.get("近20日涨幅") or 0
     near_high = m.get("接近20日高点") or 0
-    overheat = bool(mom5 > 35 or mom20 > 100)
+    vol_ratio = m.get("放量比") or 0
+    overheat = bool(mom5 > 35 or mom20 > 100 or vol_ratio > 3)
     if overheat:
         return "C-过热观察", True
     if (theme_hit or hot_sector) and m.get("突破20日新高") and 8 <= mom5 <= 25 \
-            and (turnover_ew or 0) >= 20:
+            and mom20 < 50 and (turnover_ew or 0) >= 20 and 1.0 <= vol_ratio <= 2.5:
         return "A-主线新高", False
-    if (theme_hit or hot_sector) and m.get("站上MA20") and near_high >= 0.95:
+    if (theme_hit or hot_sector) and m.get("站上MA20") and near_high >= 0.95 \
+            and 5 <= mom5 <= 25 and mom20 < 60 and (turnover_ew or 0) >= 10:
         return "B-趋势确认", False
     return "C-观察", False
 
@@ -581,13 +638,18 @@ def export_trend_starts(uni_path: str, throttle: float,
             time.sleep(throttle)
     strong = [r for r in recs if r["入选原因"] == "强趋势突破"]
     anchors = [r for r in recs if r.get("主题大票")]
-    strong.sort(key=lambda x: (x["趋势档位"].startswith("A"), x["趋势分"]), reverse=True)
+    tier_rank = {"B-趋势确认": 3, "A-主线新高": 2, "C-观察": 1, "C-过热观察": 0}
+    strong.sort(key=lambda x: (tier_rank.get(x["趋势档位"], -1), x["趋势分"]), reverse=True)
     anchors.sort(key=lambda x: (x["成交额亿"] or 0, x["趋势分"]), reverse=True)
     dedup: dict[str, dict] = {}
     for r in strong[:20] + anchors[:10]:
         dedup.setdefault(r["code"], r)
     recs = list(dedup.values())
-    recs.sort(key=lambda x: (x["入选原因"] != "强趋势突破", -x["趋势分"]))
+    recs.sort(key=lambda x: (
+        -tier_rank.get(x["趋势档位"], -1),
+        x["入选原因"] != "强趋势突破",
+        -x["趋势分"],
+    ))
     recs = recs[:TREND_TOPN]
     ts = datetime.now().strftime("%Y%m%d")
     path = os.path.join(OUTPUT_DIR, f"trend_pool_{ts}.csv")
@@ -638,10 +700,10 @@ def run(universe: str | None = None, throttle: float = 0.8,
 
     try:
         heat_path, heat_df, hot_sectors = export_sector_heat(uni)
-        top_sectors = heat_df.head(8)["industry"].tolist() if not heat_df.empty else []
+        top_sectors = heat_df.head(8).to_dict("records") if not heat_df.empty else []
         print(f"[output] 板块热度 → {heat_path}")
         if top_sectors:
-            print("[sector] 热门板块: " + " / ".join(top_sectors))
+            print("[sector] 热门板块: " + " / ".join(str(s["industry"]) for s in top_sectors))
         push_path, push_recs = export_push_starts(uni, throttle=throttle,
                                                   hot_sectors=hot_sectors)
         print(f"[output] 推盘观察池 {len(push_recs)} 只 → {push_path}")
