@@ -286,23 +286,39 @@ def send_daily(recs: list[dict], passed: list[dict],
                overview_path: str | None = None,
                trend_recs: list[dict] | None = None,
                hot_sectors: list[str] | None = None,
-               push_recs: list[dict] | None = None) -> None:
-    """发送每日通知。recs=全部High, passed=入选, overview_path=总览图本地路径。"""
+               push_recs: list[dict] | None = None,
+               sector_chart_path: str | None = None) -> None:
+    """发送每日通知。recs=全部High, passed=入选, overview_path=总览图本地路径,
+    sector_chart_path=板块热度图本地路径。"""
     cfg = _load_config()
     title, body = _build_text(recs, passed, trend_recs=trend_recs,
                               hot_sectors=hot_sectors, push_recs=push_recs)
 
-    # 总览图: push 到公开仓库, 取 jsDelivr CDN URL, 嵌入 Markdown
-    img_url = None
-    if overview_path:
+    # 图: push 到公开仓库, 取 jsDelivr CDN URL, 嵌入 Markdown
+    try:
+        import git_image
+    except Exception:  # noqa: BLE001
+        git_image = None
+
+    # 板块热度图放正文最前 (最直观), 总览图次之
+    sector_url = None
+    if sector_chart_path and git_image:
         try:
-            import git_image
-            img_url = git_image.upload_image(overview_path)
+            sector_url = git_image.upload_image(sector_chart_path, name="sector")
+        except Exception as e:  # noqa: BLE001
+            print(f"[notify] 板块图上传失败: {e}")
+    img_url = None
+    if overview_path and git_image:
+        try:
+            img_url = git_image.upload_image(overview_path, name="latest")
         except Exception as e:  # noqa: BLE001
             print(f"[notify] 图床上传失败: {e}")
     if img_url:
         body = f"![单峰密集总览]({img_url})\n\n{body}"
         print(f"[notify] 总览图已嵌入: {img_url}")
+    if sector_url:
+        body = f"![板块热度总览]({sector_url})\n\n{body}"
+        print(f"[notify] 板块热度图已嵌入: {sector_url}")
 
     # 本地日志兜底 (始终写)
     log_path = _local_log(title, body)
@@ -316,6 +332,8 @@ def send_daily(recs: list[dict], passed: list[dict],
     if cfg.get("wecom_webhook"):
         if _push_wecom(cfg["wecom_webhook"], body):
             sent.append("企业微信")
+            if sector_chart_path and os.path.exists(sector_chart_path):
+                _push_wecom_image(cfg["wecom_webhook"], sector_chart_path)
             for code, png in (charts or {}).items():   # 推图
                 _push_wecom_image(cfg["wecom_webhook"], png)
 

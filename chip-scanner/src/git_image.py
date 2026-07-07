@@ -27,12 +27,15 @@ def _git(*args, timeout=120) -> tuple[int, str]:
     return p.returncode, (p.stdout + p.stderr).strip()
 
 
-def upload_image(src_path: str) -> str | None:
-    """复制为 pushimg/latest.png 并 push。返回 jsDelivr URL (带时间戳)。"""
+def upload_image(src_path: str, name: str = "latest") -> str | None:
+    """复制为 pushimg/{name}.png 并 push。返回 jsDelivr URL (带 SHA 破缓存)。
+
+    name 区分不同用途图 (latest=筹码总览, sector=板块热度), 各自固定文件不膨胀。
+    """
     if not os.path.exists(src_path):
         return None
     os.makedirs(PUSH_DIR, exist_ok=True)
-    dst = os.path.join(PUSH_DIR, "latest.png")
+    dst = os.path.join(PUSH_DIR, f"{name}.png")
     shutil.copyfile(src_path, dst)
 
     rel = os.path.relpath(dst, REPO_ROOT).replace("\\", "/")
@@ -40,7 +43,7 @@ def upload_image(src_path: str) -> str | None:
     if code != 0:
         print(f"[gitimg] add 失败: {out}")
         return None
-    _git("commit", "-m", "chore: update push overview image")  # 无变化容忍
+    _git("commit", "-m", f"chore: update push {name} image")  # 无变化容忍
     code, out = _git("push", "origin", "HEAD")
     if code != 0 and "up-to-date" not in out.lower():
         print(f"[gitimg] push 失败: {out}")
@@ -49,7 +52,7 @@ def upload_image(src_path: str) -> str | None:
     sha_code, sha = _git("rev-parse", "HEAD")
     sha = sha.strip()[:40] if sha_code == 0 else "master"
     return (f"https://cdn.jsdelivr.net/gh/chriszyyy/daily-news@{sha}/"
-            f"chip-scanner/pushimg/latest.png")
+            f"chip-scanner/pushimg/{name}.png")
 
 
 if __name__ == "__main__":

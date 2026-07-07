@@ -698,6 +698,7 @@ def run(universe: str | None = None, throttle: float = 0.8,
     except Exception as e:  # noqa: BLE001
         print(f"[enrich] 增强失败 (不影响主流程): {e}")
 
+    heat_df = None
     try:
         heat_path, heat_df, hot_sectors = export_sector_heat(uni)
         top_sectors = heat_df.head(8).to_dict("records") if not heat_df.empty else []
@@ -739,15 +740,19 @@ def run(universe: str | None = None, throttle: float = 0.8,
             import notify
             import plot_chips
             import overview
+            import sector_chart
             charts = {}
             for r in passed[:HIGH_TOPN]:           # 对入选标的画图
                 cp = plot_chips.plot_one(r["code"], r["name"])
                 if cp:
                     charts[r["code"]] = cp
             ov = overview.build_overview(passed[:HIGH_TOPN])   # 拼总览图
+            sc_path = None
+            if heat_df is not None and not heat_df.empty:
+                sc_path = sector_chart.build_sector_chart(heat_df)   # 板块热度图
             notify.send_daily(recs, passed, charts, overview_path=ov,
                               trend_recs=trend_recs, hot_sectors=top_sectors,
-                              push_recs=push_recs)
+                              push_recs=push_recs, sector_chart_path=sc_path)
         except Exception as e:  # noqa: BLE001
             print(f"[notify] 通知失败 (不影响主流程): {e}")
 
