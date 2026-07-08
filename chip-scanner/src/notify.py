@@ -20,6 +20,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 from datetime import datetime
 
 import requests
@@ -251,8 +252,15 @@ def _push_pushdeer(key: str, title: str, body: str) -> bool:
 def _push_serverchan(key: str, title: str, body: str) -> bool:
     try:
         body = body.replace("\n", "\n\n")
-        r = requests.post(f"https://sctapi.ftqq.com/{key}.send",
-                          data={"title": title, "desp": body}, timeout=10)
+        # Server酱³ (key 以 sctp 开头) 走独立域名 {uid}.push.ft07.com/send/{key}.send
+        # 旧版 SC-T (sct 开头) 走 sctapi.ftqq.com/{key}.send
+        m = re.match(r"sctp(\d+)t", key)
+        if m:
+            uid = m.group(1)
+            url = f"https://{uid}.push.ft07.com/send/{key}.send"
+        else:
+            url = f"https://sctapi.ftqq.com/{key}.send"
+        r = requests.post(url, data={"title": title, "desp": body}, timeout=10)
         return r.ok and r.json().get("code") == 0
     except Exception:  # noqa: BLE001
         return False
