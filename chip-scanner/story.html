@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chip-Scanner · 项目故事</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141926; --panel2:#1b2233; --line:#263145;
+    --txt:#e6ebf5; --sub:#8b97ad; --muted:#5f6b82;
+    --up:#e5484d; --down:#30a46c; --gold:#f5a623; --blue:#4c8bf5; --cyan:#3dd6d0;
+    --pill:#232c40;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1200px 600px at 70% -10%,#182034 0%,var(--bg) 55%);
+    color:var(--txt);line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 100px}
+  /* Hero */
+  .hero{padding:70px 0 40px;text-align:center}
+  .badge{display:inline-block;font-size:12px;letter-spacing:.14em;color:var(--cyan);
+    border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:22px;
+    background:var(--panel);text-transform:uppercase}
+  .hero h1{font-size:44px;font-weight:800;letter-spacing:-.5px;line-height:1.15;
+    background:linear-gradient(120deg,#fff 20%,#8fb6ff 60%,#3dd6d0 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--sub);font-size:18px;max-width:640px;margin:18px auto 0}
+  .hero .meta{margin-top:26px;color:var(--muted);font-size:13px}
+  .kchip{display:inline-flex;gap:6px;align-items:center;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;padding:5px 12px;margin:4px}
+  .dot{width:7px;height:7px;border-radius:50%}
+  /* section */
+  section{margin-top:64px}
+  .sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px}
+  .sec-h .no{font-size:13px;color:var(--gold);font-weight:700;letter-spacing:.1em}
+  .sec-h h2{font-size:26px;font-weight:700}
+  .sec-h .en{color:var(--muted);font-size:13px;margin-left:auto}
+  /* pipeline */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0}
+  .stage{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:18px 16px;position:relative;margin:8px}
+  .stage .ic{font-size:22px}
+  .stage h4{font-size:15px;margin:8px 0 4px}
+  .stage p{font-size:12.5px;color:var(--sub)}
+  .stage .tag{position:absolute;top:12px;right:12px;font-size:11px;color:var(--muted)}
+  .arrow{display:flex;align-items:center;color:var(--muted);font-size:20px;padding:0 2px}
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+    border:1px solid var(--line);border-radius:16px;padding:22px;transition:.2s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-3px);border-color:#37476a}
+  .card .top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .card .emoji{font-size:26px}
+  .card h3{font-size:17px;font-weight:700}
+  .card .desc{color:var(--sub);font-size:13.5px}
+  .card ul{list-style:none;margin-top:14px;font-size:13px}
+  .card li{padding:5px 0 5px 20px;position:relative;color:var(--txt)}
+  .card li::before{content:"›";position:absolute;left:4px;color:var(--cyan);font-weight:700}
+  .st{position:absolute;top:18px;right:18px;font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:999px;letter-spacing:.03em}
+  .st.done{background:rgba(48,163,108,.15);color:#4bd08b;border:1px solid rgba(48,163,108,.35)}
+  .st.wip{background:rgba(245,166,35,.14);color:var(--gold);border:1px solid rgba(245,166,35,.35)}
+  .st.plan{background:rgba(95,107,130,.15);color:var(--sub);border:1px solid var(--line)}
+  .file{font-family:"SF Mono",Consolas,monospace;font-size:11.5px;color:var(--cyan);
+    background:var(--pill);padding:2px 7px;border-radius:5px}
+  /* telegraph demo */
+  .demo{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .demo-h{background:var(--panel2);padding:14px 20px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;font-size:14px}
+  .demo-b{padding:8px 0}
+  .tg{padding:14px 20px;border-bottom:1px solid #1c2436;display:flex;gap:12px}
+  .tg:last-child{border-bottom:none}
+  .tg .flag{font-size:16px;flex-shrink:0;margin-top:2px}
+  .tg .time{color:var(--muted);font-size:12px;font-family:monospace}
+  .tg .reason{display:inline-block;font-size:11px;color:var(--gold);
+    background:rgba(245,166,35,.1);padding:1px 8px;border-radius:5px;margin-left:8px}
+  .tg .txt{font-size:13.5px;margin:5px 0}
+  .tg .stk{font-size:12px;color:var(--cyan)}
+  .tg .stk span{background:var(--pill);padding:2px 8px;border-radius:5px;margin-right:5px;display:inline-block;margin-top:4px}
+  /* heat bars */
+  .heat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .bar-row{display:flex;align-items:center;gap:12px;margin:9px 0;font-size:13px}
+  .bar-row .name{width:96px;flex-shrink:0;text-align:right;color:var(--sub)}
+  .bar-track{flex:1;background:#111725;border-radius:6px;height:22px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:10px;
+    font-size:11px;color:#fff;font-weight:600;white-space:nowrap}
+  .bar-row .delta{width:52px;font-size:12px;font-weight:700}
+  .up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+  /* status banner */
+  .banner{margin-top:16px;background:linear-gradient(90deg,rgba(245,166,35,.1),transparent);
+    border:1px solid rgba(245,166,35,.3);border-radius:14px;padding:18px 22px;display:flex;gap:16px;align-items:flex-start}
+  .banner .b-ic{font-size:24px}
+  .banner h4{font-size:15px;margin-bottom:4px;color:var(--gold)}
+  .banner p{font-size:13px;color:var(--sub)}
+  /* tech */
+  .tech{display:flex;flex-wrap:wrap;gap:10px}
+  .tech span{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:8px 14px;font-size:13px;color:var(--sub)}
+  .tech b{color:var(--txt)}
+  /* timeline */
+  .tl{position:relative;padding-left:28px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .tl-item{position:relative;padding:10px 0 18px}
+  .tl-item::before{content:"";position:absolute;left:-25px;top:15px;width:12px;height:12px;
+    border-radius:50%;background:var(--blue);border:3px solid var(--bg)}
+  .tl-item.done::before{background:var(--down)}
+  .tl-item h4{font-size:15px}
+  .tl-item p{font-size:13px;color:var(--sub)}
+  footer{margin-top:80px;text-align:center;color:var(--muted);font-size:12.5px;
+    border-top:1px solid var(--line);padding-top:30px}
+  @media(max-width:640px){.hero h1{font-size:32px}.arrow{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <span class="badge">A股交易情报中枢 · 项目故事</span>
+    <h1>Chip-Scanner</h1>
+    <p>从全市场筹码分布，到热门板块与实时快讯 —— 一条自动化流水线，每天把「今天该关注谁」推到你手机上。</p>
+    <div class="meta">
+      <span class="kchip"><span class="dot" style="background:#4bd08b"></span>核心引擎已跑通</span>
+      <span class="kchip"><span class="dot" style="background:#f5a623"></span>推送通道调试中</span>
+      <span class="kchip"><span class="dot" style="background:#4c8bf5"></span>财联社监测新上线</span>
+    </div>
+  </div>
+
+  <!-- 一句话定位 -->
+  <section>
+    <div class="sec-h"><span class="no">01</span><h2>这个项目在做什么</h2><span class="en">THE BIG PICTURE</span></div>
+    <div class="card">
+      <p class="desc" style="font-size:15px;line-height:1.8">
+        <b style="color:var(--txt)">Chip-Scanner</b> 是 <span class="file">daily-news</span> 项目下的量化选股引擎。它每天自动扫描全 A 股，
+        用<b style="color:var(--cyan)">筹码分布</b>（找主力高度控盘、抛压小的「单峰密集」个股）做主线，
+        叠加<b style="color:var(--gold)">热门板块热度</b>与<b style="color:var(--up)">财联社实时快讯</b>做题材验证，
+        最终把精选标的 + 板块热力图 + 重要快讯，通过 <b>Server酱</b> 推送到微信。
+        目标只有一个：<b style="color:var(--txt)">比市场更早一步，发现行业与资金的异动。</b>
+      </p>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section>
+    <div class="sec-h"><span class="no">02</span><h2>核心数据流</h2><span class="en">THE PIPELINE</span></div>
+    <div class="flow">
+      <div class="stage"><span class="tag">daily</span><div class="ic">🌐</div><h4>全市场快照</h4><p>拉取全 A 股行情，构建 universe 池</p></div>
+      <div class="arrow">→</div>
+      <div class="stage"><div class="ic">🎯</div><h4>筹码漏斗</h4><p>Low → Mid → High 三级晋升，算筹码分布</p></div>
+      <div class="arrow">→</div>
+      <div class="stage"><div class="ic">💎</div><h4>单峰密集</h4><p>筛出主力控盘、套牢盘小的 High 池</p></div>
+      <div class="arrow">→</div>
+      <div class="stage"><div class="ic">🔥</div><h4>板块+快讯</h4><p>热度分析 + 财联社题材验证</p></div>
+      <div class="arrow">→</div>
+      <div class="stage"><div class="ic">📲</div><h4>推送</h4><p>图 + 文，Server酱 到微信</p></div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section>
+    <div class="sec-h"><span class="no">03</span><h2>功能模块</h2><span class="en">MODULES & STATUS</span></div>
+    <div class="grid">
+
+      <div class="card">
+        <span class="st done">已跑通</span>
+        <div class="top"><span class="emoji">🎯</span><div><h3>筹码扫描漏斗</h3><div class="desc">系统的心脏</div></div></div>
+        <ul>
+          <li>三级漏斗 Low/Mid/High，防抖动晋升降级</li>
+          <li>单峰密集 + 带宽 + 距主峰，识别控盘度</li>
+          <li>基本面增强：业绩同比 / 量比 / 成交额</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">orchestrator.py · chip_calc.py</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st done">新上线</span>
+        <div class="top"><span class="emoji">📡</span><div><h3>财联社快讯监测</h3><div class="desc">本次会话新增</div></div></div>
+        <ul>
+          <li>抓取财联社电报（签名接口已打通）</li>
+          <li>过滤：重要标记(B级) + 50+ 行业主题词</li>
+          <li>自动带出关联个股，去重防刷屏</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">cls_telegraph.py</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st done">新上线</span>
+        <div class="top"><span class="emoji">📊</span><div><h3>热门板块可视化</h3><div class="desc">本次会话新增</div></div></div>
+        <ul>
+          <li>Top12 板块热度横向柱状图</li>
+          <li>标注排名变化 ↑↓ 与成交额</li>
+          <li>底部「今日主题热度」聚合条</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">sector_chart.py</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st done">已验证</span>
+        <div class="top"><span class="emoji">🔬</span><div><h3>新闻次日回测</h3><div class="desc">本次会话新增</div></div></div>
+        <ul>
+          <li>东财新闻 → A股次日是否上涨</li>
+          <li>利好 +0.63% / 57%胜率 vs 中性 -0.49%</li>
+          <li>触发日映射：15:00 后顺延次交易日</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">news_nextday_backtest.py</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st done">已跑通</span>
+        <div class="top"><span class="emoji">🖼️</span><div><h3>图床 + 出图</h3><div class="desc">推送的视觉层</div></div></div>
+        <ul>
+          <li>筹码总览网格图 + 板块热度图</li>
+          <li>推公开仓库 → jsDelivr CDN（微信可抓）</li>
+          <li>命名文件 sector / latest，多图不覆盖</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">overview.py · git_image.py</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st wip">调试中</span>
+        <div class="top"><span class="emoji">📲</span><div><h3>Server酱 推送</h3><div class="desc">最后一公里</div></div></div>
+        <ul>
+          <li>代码 + 服务端返回全部成功 (code:0)</li>
+          <li>⚠️ 微信端未收到 → 公众号通道待排查</li>
+          <li>兜底：本地日志始终留存</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">notify.py</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st done">已常驻</span>
+        <div class="top"><span class="emoji">⏰</span><div><h3>定时调度</h3><div class="desc">无人值守</div></div></div>
+        <ul>
+          <li>Windows 计划任务，开机自启常驻</li>
+          <li>每日 21:30 自动全量扫描</li>
+          <li>财联社监测拟挂：盘中每 10 分钟</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">scheduler · run_scheduler.bat</span></div>
+      </div>
+
+      <div class="card">
+        <span class="st plan">规划中</span>
+        <div class="top"><span class="emoji">🐦</span><div><h3>社媒监测拓展</h3><div class="desc">下一步</div></div></div>
+        <ul>
+          <li>雪球 / 微博财经大V（信噪比高）</li>
+          <li>Twitter/X 特定博主（需接受不稳定）</li>
+          <li>小红书（反爬极严，暂缓）</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">roadmap</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- TELEGRAPH DEMO -->
+  <section>
+    <div class="sec-h"><span class="no">04</span><h2>财联社监测 · 实测样例</h2><span class="en">LIVE SAMPLE</span></div>
+    <p style="color:var(--sub);margin-bottom:16px;font-size:14px">抓取 40 条 → 精准命中 13 条。🔴=重要电报　🟡=主题命中，自动关联个股：</p>
+    <div class="demo">
+      <div class="demo-h"><span>📡</span><b>财联社快讯 13条 (重要4)</b><span style="color:var(--muted);margin-left:auto">10:28</span></div>
+      <div class="demo-b">
+        <div class="tg"><span class="flag">🟡</span><div>
+          <span class="time">09:30</span><span class="reason">主题:AI</span>
+          <div class="txt">【AI服务器概念盘初活跃 浪潮信息一字涨停】早盘AI服务器概念活跃，浪潮信息一字涨停，紫光股份7天3板…</div>
+          <div class="stk"><span>浪潮信息</span><span>紫光股份</span><span>中科曙光</span><span>神州数码</span></div>
+        </div></div>
+        <div class="tg"><span class="flag">🟡</span><div>
+          <span class="time">10:15</span><span class="reason">主题:芯片/算力/AI/GPU</span>
+          <div class="txt">【算力芯片概念再度活跃 云天励飞涨超10%】算力芯片概念再度活跃，云天励飞涨超10%，瑞芯微逼近涨停…</div>
+          <div class="stk"><span>云天励飞</span><span>瑞芯微</span><span>复旦微电</span><span>芯原股份</span></div>
+        </div></div>
+        <div class="tg"><span class="flag">🔴</span><div>
+          <span class="time">11:02</span><span class="reason">重要(B)</span>
+          <div class="txt">【沪深两市成交额突破1万亿 较上一日此时放量超700亿】据财联社盯盘数据显示，沪深两市成交额突破1万亿…</div>
+        </div></div>
+        <div class="tg"><span class="flag">🟡</span><div>
+          <span class="time">10:40</span><span class="reason">主题:机器人/人形机器人</span>
+          <div class="txt">【人形机器人概念震荡调整 埃斯顿跌停】人形机器人概念震荡调整，埃斯顿跌停，绿的谐波、丰光精密跟跌…</div>
+          <div class="stk"><span>埃斯顿</span><span>绿的谐波</span><span>丰光精密</span></div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTOR HEAT DEMO -->
+  <section>
+    <div class="sec-h"><span class="no">05</span><h2>板块热度 · 可视化样例</h2><span class="en">SECTOR HEAT</span></div>
+    <div class="heat">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px">今日热门板块 Top（橙=主题匹配 · 右侧为排名变化）</div>
+      <div class="bar-row"><span class="name">1. 半导体</span><div class="bar-track"><div class="bar-fill" style="width:92%;background:linear-gradient(90deg,#f5a623,#f7b955)">8.9　620亿</div></div><span class="delta up">↑3</span></div>
+      <div class="bar-row"><span class="name">2. 消费电子</span><div class="bar-track"><div class="bar-fill" style="width:79%;background:linear-gradient(90deg,#f5a623,#f7b955)">7.6　410亿</div></div><span class="delta down">↓1</span></div>
+      <div class="bar-row"><span class="name">3. 光学光电子</span><div class="bar-track"><div class="bar-fill" style="width:74%;background:linear-gradient(90deg,#f5a623,#f7b955)">7.1　280亿</div></div><span class="delta up">↑5</span></div>
+      <div class="bar-row"><span class="name">4. 通信设备</span><div class="bar-track"><div class="bar-fill" style="width:71%;background:linear-gradient(90deg,#f5a623,#f7b955)">6.8　350亿</div></div><span class="delta flat">—</span></div>
+      <div class="bar-row"><span class="name">5. 机器人</span><div class="bar-track"><div class="bar-fill" style="width:61%;background:linear-gradient(90deg,#f5a623,#f7b955)">5.9　220亿</div></div><span class="delta down">↓2</span></div>
+      <div class="bar-row"><span class="name">6. 电池</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:linear-gradient(90deg,#4c8bf5,#6da3f7)">4.8　260亿</div></div><span class="delta down">↓3</span></div>
+      <div style="font-size:14px;font-weight:700;margin:22px 0 14px">今日主题热度</div>
+      <div class="bar-row"><span class="name">半导体</span><div class="bar-track"><div class="bar-fill" style="width:90%;background:linear-gradient(90deg,#e5484d,#f16b6f)">8.9　1板块 620亿</div></div></div>
+      <div class="bar-row"><span class="name">算力</span><div class="bar-track"><div class="bar-fill" style="width:74%;background:linear-gradient(90deg,#e5484d,#f16b6f)">7.3　2板块 690亿</div></div></div>
+      <div class="bar-row"><span class="name">机器人</span><div class="bar-track"><div class="bar-fill" style="width:60%;background:linear-gradient(90deg,#e5484d,#f16b6f)">5.9　1板块 220亿</div></div></div>
+    </div>
+  </section>
+
+  <!-- CURRENT STATUS -->
+  <section>
+    <div class="sec-h"><span class="no">06</span><h2>当前状态 & 下一步</h2><span class="en">WHERE WE ARE</span></div>
+    <div class="tl">
+      <div class="tl-item done"><h4>✅ 核心引擎 + 定时调度已跑通</h4><p>筹码漏斗、板块热度、图床出图、Windows 计划任务常驻。</p></div>
+      <div class="tl-item done"><h4>✅ 财联社快讯监测上线</h4><p>抓取+过滤+去重全部验证，信噪比高，实测 40 抓 13 命中。</p></div>
+      <div class="tl-item"><h4>🔧 Server酱 推送通道排查中</h4><p>服务端全部返回成功，但微信端未收到 —— 正在核实公众号 / 通道绑定。</p></div>
+      <div class="tl-item"><h4>📋 财联社挂入定时任务</h4><p>通道打通后，挂载盘中每 10 分钟自动扫描。</p></div>
+      <div class="tl-item"><h4>📋 社媒监测拓展</h4><p>雪球 / 微博财经大V 优先，Twitter 次之。</p></div>
+    </div>
+
+    <div class="banner">
+      <span class="b-ic">💡</span>
+      <div>
+        <h4>唯一卡点：推送最后一公里</h4>
+        <p>目前所有引擎和数据链路都已就绪，唯一待解决的是 Server酱 → 微信的通道绑定。一旦打通，板块热力图与财联社快讯即可自动落到手机。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH -->
+  <section>
+    <div class="sec-h"><span class="no">07</span><h2>技术栈</h2><span class="en">BUILT WITH</span></div>
+    <div class="tech">
+      <span><b>Python 3.12</b> 核心</span>
+      <span><b>pandas / numpy</b> 数据</span>
+      <span><b>matplotlib</b> 出图</span>
+      <span><b>requests</b> 抓取</span>
+      <span><b>APScheduler</b> 调度</span>
+      <span><b>财联社电报</b> 快讯源</span>
+      <span><b>腾讯/东财</b> 行情</span>
+      <span><b>jsDelivr CDN</b> 图床</span>
+      <span><b>Server酱</b> 推送</span>
+      <span><b>Windows 计划任务</b> 常驻</span>
+    </div>
+  </section>
+
+  <footer>
+    Chip-Scanner · daily-news &nbsp;|&nbsp; 项目故事页 &nbsp;|&nbsp; 本页为静态展示，数据为演示样例
+  </footer>
+
+</div>
+</body>
+</html>
