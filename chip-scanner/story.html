@@ -123,8 +123,8 @@
     <p>从全市场筹码分布，到热门板块与实时快讯 —— 一条自动化流水线，每天把「今天该关注谁」推到你手机上。</p>
     <div class="meta">
       <span class="kchip"><span class="dot" style="background:#4bd08b"></span>核心引擎已跑通</span>
-      <span class="kchip"><span class="dot" style="background:#f5a623"></span>推送通道调试中</span>
-      <span class="kchip"><span class="dot" style="background:#4c8bf5"></span>财联社监测新上线</span>
+      <span class="kchip"><span class="dot" style="background:#4bd08b"></span>推送通道已打通</span>
+      <span class="kchip"><span class="dot" style="background:#4c8bf5"></span>次日候选·前向验证上线</span>
     </div>
   </div>
 
@@ -136,7 +136,7 @@
         <b style="color:var(--txt)">Chip-Scanner</b> 是 <span class="file">daily-news</span> 项目下的量化选股引擎。它每天自动扫描全 A 股，
         用<b style="color:var(--cyan)">筹码分布</b>（找主力高度控盘、抛压小的「单峰密集」个股）做主线，
         叠加<b style="color:var(--gold)">热门板块热度</b>与<b style="color:var(--up)">财联社实时快讯</b>做题材验证，
-        最终把精选标的 + 板块热力图 + 重要快讯，通过 <b>Server酱</b> 推送到微信。
+        最终把精选标的 + 板块热力图 + 重要快讯 + 次日候选，通过 <b>Server酱</b> 推送到手机。
         目标只有一个：<b style="color:var(--txt)">比市场更早一步，发现行业与资金的异动。</b>
       </p>
     </div>
@@ -208,6 +208,18 @@
       </div>
 
       <div class="card">
+        <span class="st done">新上线</span>
+        <div class="top"><span class="emoji">🎯</span><div><h3>次日候选 + 前向验证</h3><div class="desc">本次会话新增 · 每日闭环</div></div></div>
+        <ul>
+          <li>快讯提及「盘中大涨」个股 → 次日强动量候选</li>
+          <li>回测：涨停桶次日 +3.27% / 64%胜率（30d/5085样本）</li>
+          <li>每天收盘存档预测，次日自动回填真实结果</li>
+          <li>滚动胜率：全样本 / 可交易 / 分档，创业板标无权限</li>
+        </ul>
+        <div style="margin-top:14px"><span class="file">cls_nextday_backtest.py · cls_signal.py</span></div>
+      </div>
+
+      <div class="card">
         <span class="st done">已跑通</span>
         <div class="top"><span class="emoji">🖼️</span><div><h3>图床 + 出图</h3><div class="desc">推送的视觉层</div></div></div>
         <ul>
@@ -219,11 +231,11 @@
       </div>
 
       <div class="card">
-        <span class="st wip">调试中</span>
+        <span class="st done">已打通</span>
         <div class="top"><span class="emoji">📲</span><div><h3>Server酱 推送</h3><div class="desc">最后一公里</div></div></div>
         <ul>
-          <li>代码 + 服务端返回全部成功 (code:0)</li>
-          <li>⚠️ 微信端未收到 → 公众号通道待排查</li>
+          <li>SC3 独立域名自动识别（sctp key）</li>
+          <li>微信公众号异常 → iOS App 稳定接收</li>
           <li>兜底：本地日志始终留存</li>
         </ul>
         <div style="margin-top:14px"><span class="file">notify.py</span></div>
@@ -231,13 +243,13 @@
 
       <div class="card">
         <span class="st done">已常驻</span>
-        <div class="top"><span class="emoji">⏰</span><div><h3>定时调度</h3><div class="desc">无人值守</div></div></div>
+        <div class="top"><span class="emoji">⏰</span><div><h3>定时调度</h3><div class="desc">无人值守 · 已重构</div></div></div>
         <ul>
-          <li>Windows 计划任务，开机自启常驻</li>
-          <li>每日 21:30 自动全量扫描</li>
-          <li>财联社监测拟挂：盘中每 10 分钟</li>
+          <li>Windows 计划任务 Daily 触发，重启不丢</li>
+          <li>21:00 快讯汇总 · 21:15 候选+验证 · 21:30 筹码扫描</li>
+          <li>周一~五自动跑，跑完即退（非常驻进程）</li>
         </ul>
-        <div style="margin-top:14px"><span class="file">scheduler · run_scheduler.bat</span></div>
+        <div style="margin-top:14px"><span class="file">run_cls_summary / run_cls_signal / run_chip_scan .bat</span></div>
       </div>
 
       <div class="card">
@@ -306,18 +318,19 @@
   <section>
     <div class="sec-h"><span class="no">06</span><h2>当前状态 & 下一步</h2><span class="en">WHERE WE ARE</span></div>
     <div class="tl">
-      <div class="tl-item done"><h4>✅ 核心引擎 + 定时调度已跑通</h4><p>筹码漏斗、板块热度、图床出图、Windows 计划任务常驻。</p></div>
-      <div class="tl-item done"><h4>✅ 财联社快讯监测上线</h4><p>抓取+过滤+去重全部验证，信噪比高，实测 40 抓 13 命中。</p></div>
-      <div class="tl-item"><h4>🔧 Server酱 推送通道排查中</h4><p>服务端全部返回成功，但微信端未收到 —— 正在核实公众号 / 通道绑定。</p></div>
-      <div class="tl-item"><h4>📋 财联社挂入定时任务</h4><p>通道打通后，挂载盘中每 10 分钟自动扫描。</p></div>
+      <div class="tl-item done"><h4>✅ 核心引擎 + 定时调度已跑通</h4><p>筹码漏斗、板块热度、图床出图；调度重构为 Windows Daily 计划任务，重启不丢。</p></div>
+      <div class="tl-item done"><h4>✅ 财联社快讯监测上线</h4><p>抓取+过滤+去重全部验证，信噪比高，每晚 21:00 收盘汇总推送。</p></div>
+      <div class="tl-item done"><h4>✅ Server酱 推送通道打通</h4><p>SC3 独立域名，微信公众号异常时改用 iOS App 稳定接收，实测到手机。</p></div>
+      <div class="tl-item done"><h4>✅ 次日候选 + 前向验证闭环</h4><p>每晚 21:15 推强动量候选、回填昨日真实结果、累计滚动胜率全部留档。</p></div>
+      <div class="tl-item"><h4>📋 攒够样本验证策略</h4><p>前向验证需 20~30 交易日才有统计意义，持续累积中。</p></div>
       <div class="tl-item"><h4>📋 社媒监测拓展</h4><p>雪球 / 微博财经大V 优先，Twitter 次之。</p></div>
     </div>
 
     <div class="banner">
-      <span class="b-ic">💡</span>
+      <span class="b-ic">🚀</span>
       <div>
-        <h4>唯一卡点：推送最后一公里</h4>
-        <p>目前所有引擎和数据链路都已就绪，唯一待解决的是 Server酱 → 微信的通道绑定。一旦打通，板块热力图与财联社快讯即可自动落到手机。</p>
+        <h4>全链路已闭环，进入实盘验证期</h4>
+        <p>从全市场筹码扫描、板块热度、财联社快讯，到每日次日候选与前向验证，数据链路已全部自动落到手机。接下来靠时间累积样本，检验「快讯强动量 → 次日延续」的胜率是否可持续复现。</p>
       </div>
     </div>
   </section>
