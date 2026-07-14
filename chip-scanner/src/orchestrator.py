@@ -551,7 +551,7 @@ def export_trend_starts(uni_path: str, throttle: float,
 
     hot_sectors = hot_sectors or set()
     df["theme_hit"] = df.get("industry", "").astype(str).apply(
-        lambda s: any(k in s for k in TREND_INDUSTRIES)
+        lambda s: any(k in str(s) for k in TREND_INDUSTRIES)
     )
     df["hot_sector"] = df.get("industry", "").astype(str).isin(hot_sectors)
 

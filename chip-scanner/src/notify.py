@@ -40,6 +40,19 @@ def _load_config() -> dict:
     return {}
 
 
+def _isnum(v) -> bool:
+    """True only for real numbers; rejects NaN (nan != nan)."""
+    return isinstance(v, (int, float)) and v == v
+
+
+def _ind(r) -> str:
+    """Render '（行业）' suffix; empty when industry missing/NaN."""
+    s = r.get("industry")
+    if s is None or (isinstance(s, float) and s != s) or str(s).strip() == "":
+        return ""
+    return f" ({s})"
+
+
 def _build_text(recs: list[dict], passed: list[dict],
                 trend_recs: list[dict] | None = None,
                 hot_sectors: list[str] | None = None,
@@ -49,7 +62,7 @@ def _build_text(recs: list[dict], passed: list[dict],
     title = f"筹码扫描 {datetime.now():%m-%d}: 单峰密集 Top{len(passed)}"
 
     def _num(v, fmt="{:.1f}", suffix=""):
-        return (fmt.format(v) + suffix) if isinstance(v, (int, float)) else "—"
+        return (fmt.format(v) + suffix) if _isnum(v) else "—"
 
     lines = [
         f"## 筹码扫描结果 {ts}",
@@ -62,7 +75,7 @@ def _build_text(recs: list[dict], passed: list[dict],
     ]
     if hot_sectors:
         def _fmt_delta(v, suffix=""):
-            if isinstance(v, (int, float)):
+            if _isnum(v):
                 return f"{v:+.2f}{suffix}"
             return "—"
 
@@ -129,25 +142,25 @@ def _build_text(recs: list[dict], passed: list[dict],
         lines.append("")
         for i, r in enumerate(items[:max_items], 1):
             def _f(v, suf="%"):
-                return f"{v:+.0f}{suf}" if isinstance(v, (int, float)) else "—"
+                return f"{v:+.0f}{suf}" if _isnum(v) else "—"
             np_yoy = _f(r.get("净利润同比"))
             rev_yoy = _f(r.get("营收同比"))
             roe = _num(r.get("ROE"), "{:.1f}", "%")
             vr = _num(r.get("量比"), "{:.1f}")
             amt = _num(r.get("成交额亿"), "{:.1f}", "亿")
             main = (f"{r['主力净流入亿']:+.2f}亿/{r.get('主力净占比'):+.1f}%"
-                    if isinstance(r.get("主力净流入亿"), (int, float))
-                    and isinstance(r.get("主力净占比"), (int, float)) else "—")
+                    if _isnum(r.get("主力净流入亿"))
+                    and _isnum(r.get("主力净占比")) else "—")
             super_flow = (f"{r['超大单净流入亿']:+.2f}亿"
-                          if isinstance(r.get("超大单净流入亿"), (int, float))
+                          if _isnum(r.get("超大单净流入亿"))
                           else "—")
             large = (f"{r['大单净流入亿']:+.2f}亿"
-                     if isinstance(r.get("大单净流入亿"), (int, float)) else "—")
+                     if _isnum(r.get("大单净流入亿")) else "—")
             fund_mark = "✓" if r.get("资金确认") == "是" else "—"
             pe = _num(r.get("PE"), "{:.0f}")
             price = _num(r.get("price"), "{:.2f}")
             lines.extend([
-                f"- **{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"- **{i}. {r['code']} {r['name']}**{_ind(r)}",
                 f"  - 类型: {r.get('单峰类型', '普通单峰')}",
                 f"  - 价格/估值: {price} / PE {pe}",
                 f"  - 形态: 带宽 {r['带宽70']:.0%} / 次峰 {r['次峰比']:.2f} / 距峰 {r['距主峰']:+.0%}",
@@ -157,7 +170,7 @@ def _build_text(recs: list[dict], passed: list[dict],
                 "",
             ])
         if len(items) > max_items:
-            lines.append(f"_另有 {len(items) - max_items} 只, 见 high_pool CSV_")
+            lines.append(f"_（还有 {len(items) - max_items} 只未展开）_")
 
     trend_recs = trend_recs or []
     b_trends = [r for r in trend_recs if r.get("趋势档位") == "B-趋势确认"]
@@ -171,7 +184,7 @@ def _build_text(recs: list[dict], passed: list[dict],
             ma = "多头" if r.get("均线多头") else "站上MA20"
             pe = f"{r.get('PE'):.0f}" if isinstance(r.get("PE"), (int, float)) else "—"
             lines += [
-                f"- **B{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"- **B{i}. {r['code']} {r['name']}**{_ind(r)}",
                 f"  - 趋势: 5日 {r['近5日涨幅']:+.1f}% / 20日 {r['近20日涨幅']:+.1f}% / {breakout} {r['接近20日高点']:.0%} / {ma}",
                 f"  - 量价: 放量比 {r.get('放量比')} / 额 {r.get('成交额亿')}亿 / PE {pe} / 分 {r.get('趋势分')}",
                 "",
@@ -182,7 +195,7 @@ def _build_text(recs: list[dict], passed: list[dict],
         for i, r in enumerate(a_trends[:8], 1):
             pe = f"{r.get('PE'):.0f}" if isinstance(r.get("PE"), (int, float)) else "—"
             lines += [
-                f"- **A{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"- **A{i}. {r['code']} {r['name']}**{_ind(r)}",
                 f"  - 趋势: 5日 {r['近5日涨幅']:+.1f}% / 20日 {r['近20日涨幅']:+.1f}% / 新高 {r['接近20日高点']:.0%}",
                 f"  - 量价: 放量比 {r.get('放量比')} / 额 {r.get('成交额亿')}亿 / PE {pe} / 分 {r.get('趋势分')}",
                 "",
@@ -203,9 +216,9 @@ def _build_text(recs: list[dict], passed: list[dict],
         offensive = [r for r in passed if r.get("单峰类型") == "进攻单峰"]
         defensive = [r for r in passed if r.get("单峰类型") == "防守单峰"]
         other = [r for r in passed if r.get("单峰类型") not in ("进攻单峰", "防守单峰")]
-        add_high_section("进攻单峰（低位蓄势）", offensive, max_items=8)
-        add_high_section("防守单峰（低波动/防守）", defensive, max_items=6)
-        add_high_section("其他单峰", other, max_items=4)
+        add_high_section("进攻单峰（低位蓄势）", offensive, max_items=99)
+        add_high_section("防守单峰（低波动/防守）", defensive, max_items=99)
+        add_high_section("其他单峰", other, max_items=99)
 
     push_recs = push_recs or []
     if push_recs:
@@ -214,14 +227,14 @@ def _build_text(recs: list[dict], passed: list[dict],
         lines.append("")
         for i, r in enumerate(push_recs, 1):
             lines += [
-                f"- **P{i}. {r['code']} {r['name']}** ({r.get('industry','')})",
+                f"- **P{i}. {r['code']} {r['name']}**{_ind(r)}",
                 f"  - 观察: {r.get('推盘档位')} / 风险 {r.get('风险分层')}",
-                f"  - 资金: 主力 {r['主力净流入亿']:+.2f}亿/{r['主力净占比']:+.1f}% / 超大 {r['超大单净流入亿']:+.2f}亿 / 大单 {r['大单净流入亿']:+.2f}亿",
+                f"  - 资金: 主力 {_num(r.get('主力净流入亿'), '{:+.2f}', '亿')} / 超大 {_num(r.get('超大单净流入亿'), '{:+.2f}', '亿')} / 大单 {_num(r.get('大单净流入亿'), '{:+.2f}', '亿')}",
                 f"  - 强度: 收盘 {r['收盘强度']:.0%} / 5日 {r['近5日涨幅']:+.1f}% / 20日 {r['近20日涨幅']:+.1f}% / 分 {r.get('推盘分')}",
                 "",
             ]
 
-    lines += ["", f"_完整见 high_pool / trend_pool / push_pool CSV_"]
+    lines += ["", "_— 以上为全部入选标的 —_"]
     body = "\n".join(lines)
     # Server酱/微信 Markdown 对连续块较敏感; 统一加空行提升可读性。
     body = body.replace("\n- **", "\n\n- **")
